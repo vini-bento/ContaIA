@@ -881,29 +881,39 @@ async function saveCliente() {
     escritorio_id: ESCRITORIO_ID
   };
   if (editingClienteId) {
-    const {error}=await sb.from('clientes').update(data).eq('id',editingClienteId);
+    const idx = clientes.findIndex(c => c.id === editingClienteId);
+    const honorarioAntigo = parseFloat(clientes[idx]?.honorario) || 0;
+    const honorarioNovo = parseFloat(data.honorario) || 0;
+    const {error} = await sb.from('clientes').update(data).eq('id', editingClienteId);
     if (!error) {
-      const idx=clientes.findIndex(c=>c.id===editingClienteId);
-      const clienteAntigo = clientes[idx];
-      clientes[idx]={...clientes[idx],...data};
-      if (data.honorario && data.honorario !== clienteAntigo.honorario) {
+      clientes[idx] = {...clientes[idx], ...data};
+      if (honorarioNovo > 0 && honorarioNovo !== honorarioAntigo) {
         // Atualiza cobranças existentes em aberto/atrasadas
         await sb.from('cobranças')
-          .update({ valor: data.honorario })
+          .update({ valor: honorarioNovo })
           .eq('cliente_id', editingClienteId)
           .in('status', ['Em Aberto', 'Atrasado']);
-        // Cria cobranças futuras que ainda não existem com o novo valor
+        // Cria cobranças futuras que ainda não existem
         const hoje = new Date();
         const rows = [];
         for (let i = 0; i < 12; i++) {
           const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
           const mes = d.getMonth() + 1;
           const ano = d.getFullYear();
-          const jaExiste = cobrancas.find(cb => cb.cliente_id === editingClienteId && cb.mes === mes && cb.ano === ano);
-          if (!jaExiste) rows.push({ escritorio_id: ESCRITORIO_ID, cliente_id: editingClienteId, user_id: currentUser.id, mes, ano, valor: data.honorario, status: 'Em Aberto', obs: '' });
+          const jaExiste = cobrancas.find(cb =>
+            cb.cliente_id === editingClienteId && cb.mes === mes && cb.ano === ano
+          );
+          if (!jaExiste) rows.push({
+            escritorio_id: ESCRITORIO_ID,
+            cliente_id: editingClienteId,
+            user_id: currentUser.id,
+            mes, ano,
+            valor: honorarioNovo,
+            status: 'Em Aberto',
+            obs: ''
+          });
         }
         if (rows.length) await sb.from('cobranças').insert(rows);
-        // Recarrega cobranças
         const { data: cobs } = await sb.from('cobranças').select('*').eq('escritorio_id', ESCRITORIO_ID).order('created_at', {ascending:false});
         cobrancas = cobs || [];
         toast('Honorário e cobranças futuras atualizados!');
@@ -1447,16 +1457,27 @@ async function gerarCobrancasNovoCliente(cliente) {
   if (cliente.status !== 'Ativo' || cliente.tipo_contrato !== 'Recorrente' || !cliente.honorario) return;
   const hoje = new Date();
   const rows = [];
+  // Recarrega cobranças do banco antes de verificar duplicatas
+  const { data: cobsAtuais } = await sb.from('cobranças').select('*').eq('escritorio_id', ESCRITORIO_ID);
+  const cobsLocal = cobsAtuais || [];
   for (let i = 0; i < 12; i++) {
     const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
     const mes = d.getMonth() + 1;
     const ano = d.getFullYear();
-    const jaExiste = cobrancas.find(cb => cb.cliente_id === cliente.id && cb.mes === mes && cb.ano === ano);
-    if (!jaExiste) rows.push({ escritorio_id: ESCRITORIO_ID, cliente_id: cliente.id, user_id: currentUser.id, mes, ano, valor: cliente.honorario, status: 'Em Aberto', obs: '' });
+    const jaExiste = cobsLocal.find(cb => cb.cliente_id === cliente.id && cb.mes === mes && cb.ano === ano);
+    if (!jaExiste) rows.push({
+      escritorio_id: ESCRITORIO_ID,
+      cliente_id: cliente.id,
+      user_id: currentUser.id,
+      mes, ano,
+      valor: parseFloat(cliente.honorario),
+      status: 'Em Aberto',
+      obs: ''
+    });
   }
   if (rows.length) {
     const { data: novos } = await sb.from('cobranças').insert(rows).select();
-    if (novos) cobrancas.unshift(...novos);
+    if (novos) cobrancas = [...novos, ...cobrancas];
   }
 }
 
