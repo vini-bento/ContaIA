@@ -470,9 +470,20 @@
           <div class="fin-card yellow"><div class="fin-card-label">Em Aberto</div><div class="fin-card-value" id="fin-aberto">R$ 0</div></div>
           <div class="fin-card red"><div class="fin-card-label">Atrasado</div><div class="fin-card-value" id="fin-atrasado">R$ 0</div></div>
         </div>
-        <div class="card">
-          <div class="card-title">📋 Clientes Recorrentes</div>
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-title">📋 Cobranças do Mês</div>
           <div id="fin-lista"><div class="empty"><div class="empty-icon">💸</div><div class="empty-text">Nenhum cliente recorrente cadastrado ainda.</div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">📊 Histórico de Pagamentos</div>
+          <div class="cat-tabs" style="margin-bottom:16px">
+            <div class="cat-tab active" onclick="switchFinTab('pagas')">✅ Pagas</div>
+            <div class="cat-tab" onclick="switchFinTab('aberto')">🕐 Em Aberto</div>
+            <div class="cat-tab" onclick="switchFinTab('atrasadas')">⚠️ Atrasadas</div>
+          </div>
+          <div id="fin-hist-pagas"></div>
+          <div id="fin-hist-aberto" class="hidden"></div>
+          <div id="fin-hist-atrasadas" class="hidden"></div>
         </div>
       </div>
 
@@ -871,7 +882,21 @@ async function saveCliente() {
   };
   if (editingClienteId) {
     const {error}=await sb.from('clientes').update(data).eq('id',editingClienteId);
-    if (!error) { const idx=clientes.findIndex(c=>c.id===editingClienteId); clientes[idx]={...clientes[idx],...data}; }
+    if (!error) {
+      const idx=clientes.findIndex(c=>c.id===editingClienteId);
+      const clienteAntigo = clientes[idx];
+      clientes[idx]={...clientes[idx],...data};
+      // Atualiza cobranças futuras em aberto se honorário mudou
+      if (data.honorario && data.honorario !== clienteAntigo.honorario) {
+        await sb.from('cobranças')
+          .update({ valor: data.honorario })
+          .eq('cliente_id', editingClienteId)
+          .in('status', ['Em Aberto', 'Atrasado']);
+        const { data: cobs } = await sb.from('cobranças').select('*').eq('escritorio_id', ESCRITORIO_ID).order('created_at', {ascending:false});
+        cobrancas = cobs || [];
+        toast('Honorário e cobranças futuras atualizados!');
+      }
+    }
   } else {
     const {data:novo,error}=await sb.from('clientes').insert({...data,criado:new Date().toISOString().slice(0,10)}).select().single();
     if (!error) {
@@ -1440,7 +1465,45 @@ async function deleteCobranca(id) {
   renderFinanceiro(); toast('Cobrança excluída.');
 }
 
-function renderFinanceiro() {
+function switchFinTab(tab) {
+  document.querySelectorAll('#page-financeiro .cat-tab').forEach((t,i) => {
+    t.classList.toggle('active', (i===0&&tab==='pagas')||(i===1&&tab==='aberto')||(i===2&&tab==='atrasadas'));
+  });
+  document.getElementById('fin-hist-pagas').classList.toggle('hidden', tab !== 'pagas');
+  document.getElementById('fin-hist-aberto').classList.toggle('hidden', tab !== 'aberto');
+  document.getElementById('fin-hist-atrasadas').classList.toggle('hidden', tab !== 'atrasadas');
+}
+
+function renderFinHist() {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  const renderLista = (lista, elId) => {
+    const el = document.getElementById(elId);
+    if (!lista.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">Nenhum registro encontrado.</div></div>'; return; }
+    const sorted = [...lista].sort((a,b) => { const da=new Date(a.ano,a.mes-1); const db=new Date(b.ano,b.mes-1); return db-da; });
+    el.innerHTML = sorted.map(cb => {
+      const cl = clientes.find(c => c.id === cb.cliente_id);
+      const badge = cb.status==='Pago'?'badge-green':cb.status==='Atrasado'?'badge-red':'badge-yellow';
+      return `<div class="cobranca-item">
+        <div class="cobranca-left">
+          <div class="cobranca-nome">${cl ? esc(cl.nome) : '—'}</div>
+          <div class="cobranca-detalhe">${meses[cb.mes-1]}/${cb.ano}${cb.pago_em ? ' · pago em '+cb.pago_em : ''}</div>
+        </div>
+        <div class="cobranca-right">
+          <div class="cobranca-valor">R$ ${parseFloat(cb.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+          <span class="badge ${badge}">${cb.status}</span>
+          <button class="btn btn-ghost btn-sm" onclick="toggleCobranca('${cb.id}')">⟳</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCobranca('${cb.id}')">✕</button>
+        </div>
+      </div>`;
+    }).join('');
+  };
+
+  renderLista(cobrancas.filter(cb => cb.status === 'Pago'), 'fin-hist-pagas');
+  renderLista(cobrancas.filter(cb => cb.status === 'Em Aberto'), 'fin-hist-aberto');
+  renderLista(cobrancas.filter(cb => cb.status === 'Atrasado'), 'fin-hist-atrasadas');
+}
   const mes = parseInt(document.getElementById('fin-mes')?.value || new Date().getMonth() + 1);
   const ano = parseInt(document.getElementById('fin-ano')?.value || ANO);
   const doMes = cobrancas.filter(cb => cb.mes === mes && cb.ano === ano);
@@ -1474,6 +1537,7 @@ function renderFinanceiro() {
       </div>
     </div>`;
   }).join('');
+  renderFinHist();
 }
 
 // ── MÁSCARAS ──
