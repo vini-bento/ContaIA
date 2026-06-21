@@ -886,12 +886,24 @@ async function saveCliente() {
       const idx=clientes.findIndex(c=>c.id===editingClienteId);
       const clienteAntigo = clientes[idx];
       clientes[idx]={...clientes[idx],...data};
-      // Atualiza cobranças futuras em aberto se honorário mudou
       if (data.honorario && data.honorario !== clienteAntigo.honorario) {
+        // Atualiza cobranças existentes em aberto/atrasadas
         await sb.from('cobranças')
           .update({ valor: data.honorario })
           .eq('cliente_id', editingClienteId)
           .in('status', ['Em Aberto', 'Atrasado']);
+        // Cria cobranças futuras que ainda não existem com o novo valor
+        const hoje = new Date();
+        const rows = [];
+        for (let i = 0; i < 12; i++) {
+          const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
+          const mes = d.getMonth() + 1;
+          const ano = d.getFullYear();
+          const jaExiste = cobrancas.find(cb => cb.cliente_id === editingClienteId && cb.mes === mes && cb.ano === ano);
+          if (!jaExiste) rows.push({ escritorio_id: ESCRITORIO_ID, cliente_id: editingClienteId, user_id: currentUser.id, mes, ano, valor: data.honorario, status: 'Em Aberto', obs: '' });
+        }
+        if (rows.length) await sb.from('cobranças').insert(rows);
+        // Recarrega cobranças
         const { data: cobs } = await sb.from('cobranças').select('*').eq('escritorio_id', ESCRITORIO_ID).order('created_at', {ascending:false});
         cobrancas = cobs || [];
         toast('Honorário e cobranças futuras atualizados!');
