@@ -19,6 +19,25 @@
   .drive-client-section{margin-bottom:20px;}
   .drive-client-name{font-size:13px;font-weight:600;color:var(--accent2);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
   .kevin-warning{background:rgba(246,201,14,0.08);border:1px solid rgba(246,201,14,0.2);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--yellow);margin-bottom:16px;line-height:1.5;}
+  /* FINANCEIRO */
+  .fin-month-selector{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+  .fin-month-selector select{width:auto;flex:none;}
+  .fin-resumo{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
+  .fin-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px 18px;position:relative;overflow:hidden;}
+  .fin-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+  .fin-card.green::before{background:var(--green);}
+  .fin-card.yellow::before{background:var(--yellow);}
+  .fin-card.red::before{background:var(--red);}
+  .fin-card-label{font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text3);margin-bottom:6px;}
+  .fin-card-value{font-family:'DM Serif Display',serif;font-size:24px;color:var(--text);}
+  .cobranca-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);}
+  .cobranca-item:last-child{border-bottom:none;}
+  .cobranca-left{display:flex;flex-direction:column;gap:2px;}
+  .cobranca-nome{font-size:13px;font-weight:500;}
+  .cobranca-detalhe{font-size:11px;color:var(--text3);}
+  .cobranca-right{display:flex;align-items:center;gap:10px;}
+  .cobranca-valor{font-size:14px;font-weight:600;color:var(--accent2);}
+  .pago-em{font-size:10px;color:var(--green);}
 </style>
 <style>
   :root {
@@ -335,11 +354,15 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
         Documentos
       </div>
+      <div class="nav-item" onclick="navigate('financeiro');closeSidebar()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Financeiro
+      </div>
     </div>
     <div class="sidebar-footer">
       <div class="sidebar-user" id="sidebar-user"></div>
       <button class="btn btn-logout btn-sm" onclick="logout()">Sair</button>
-      <div class="version" style="margin-top:10px">ContaIA v4.0 · <span id="footer-year"></span></div>
+      <div class="version" style="margin-top:10px">ContaIA v5.0 · <span id="footer-year"></span></div>
     </div>
   </div>
 
@@ -428,6 +451,31 @@
         </div>
       </div>
 
+      <!-- FINANCEIRO -->
+      <div class="page" id="page-financeiro">
+        <div class="fin-month-selector">
+          <div class="card-title" style="margin-bottom:0">💰 Cobranças</div>
+          <select id="fin-mes" onchange="renderFinanceiro()" style="font-size:13px;padding:6px 10px">
+            <option value="1">Janeiro</option><option value="2">Fevereiro</option>
+            <option value="3">Março</option><option value="4">Abril</option>
+            <option value="5">Maio</option><option value="6">Junho</option>
+            <option value="7">Julho</option><option value="8">Agosto</option>
+            <option value="9">Setembro</option><option value="10">Outubro</option>
+            <option value="11">Novembro</option><option value="12">Dezembro</option>
+          </select>
+          <select id="fin-ano" onchange="renderFinanceiro()" style="font-size:13px;padding:6px 10px"></select>
+        </div>
+        <div class="fin-resumo">
+          <div class="fin-card green"><div class="fin-card-label">Recebido</div><div class="fin-card-value" id="fin-recebido">R$ 0</div></div>
+          <div class="fin-card yellow"><div class="fin-card-label">Em Aberto</div><div class="fin-card-value" id="fin-aberto">R$ 0</div></div>
+          <div class="fin-card red"><div class="fin-card-label">Atrasado</div><div class="fin-card-value" id="fin-atrasado">R$ 0</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">📋 Clientes Recorrentes</div>
+          <div id="fin-lista"><div class="empty"><div class="empty-icon">💸</div><div class="empty-text">Nenhum cliente recorrente cadastrado ainda.</div></div></div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -437,6 +485,7 @@
       <div class="bnav-item" id="bnav-clientes" onclick="navigate('clientes')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Clientes</div>
       <div class="bnav-item" id="bnav-obrigacoes" onclick="navigate('obrigacoes')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Prazos</div>
       <div class="bnav-item" id="bnav-orcamentos" onclick="navigate('orcamentos')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Orçamentos</div>
+      <div class="bnav-item" id="bnav-financeiro" onclick="navigate('financeiro')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Financeiro</div>
     </div>
   </nav>
 </div>
@@ -453,7 +502,13 @@
       </div>
       <div class="form-group"><label>CPF (XXX.XXX.XXX-XX)</label><input type="text" id="c-cpf" inputmode="numeric" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)" autocomplete="off"></div>
       <div class="form-group"><label>CNPJ (XX.XXX.XXX/XXXX-XX)</label><input type="text" id="c-cnpj" inputmode="numeric" placeholder="00.000.000/0000-00" maxlength="18" oninput="maskCNPJ(this)" autocomplete="off"></div>
-      <div class="form-group"><label>Honorário Mensal (R$)</label><input type="number" id="c-honorario" inputmode="decimal"></div>
+      <div class="form-group"><label>Tipo de Contrato</label>
+        <select id="c-tipo_contrato" onchange="toggleHonorario()">
+          <option value="Recorrente">Recorrente (mensalidade fixa)</option>
+          <option value="Avulso">Avulso (serviço pontual)</option>
+        </select>
+      </div>
+      <div class="form-group" id="grupo-honorario"><label>Honorário Mensal (R$)</label><input type="number" id="c-honorario" inputmode="decimal"></div>
       <div class="form-group"><label>E-mail</label><input type="email" id="c-email"></div>
       <div class="form-group"><label>Telefone Fixo</label><input type="text" id="c-telfixo" inputmode="numeric" placeholder="(11) 3333-4444" maxlength="14" oninput="maskTelFixo(this)"></div>
       <div class="form-group"><label>Celular / WhatsApp</label><input type="text" id="c-telcel" inputmode="numeric" placeholder="(11) 99999-9999" maxlength="15" oninput="maskTelCel(this)"></div>
@@ -561,7 +616,7 @@ const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 // ── STATE ──
 let currentUser = null;
-let clientes = [], obrigacoes = [], orcamentos = [], catalogo = [];
+let clientes = [], obrigacoes = [], orcamentos = [], catalogo = [], cobrancas = [];
 let editingClienteId = null, editingObId = null, editingCatId = null;
 let orcItens = [];
 let currentOrcTab = 'pj', currentCatTab = 'pj';
@@ -632,7 +687,7 @@ async function submitAuth() {
 
 async function logout() {
   await sb.auth.signOut();
-  clientes=[]; obrigacoes=[]; orcamentos=[]; catalogo=[];
+  clientes=[]; obrigacoes=[]; orcamentos=[]; catalogo=[]; cobrancas=[];
   currentUser=null;
   document.getElementById('app').classList.remove('visible');
   showLogin();
@@ -640,16 +695,18 @@ async function logout() {
 
 // ── LOAD ──
 async function loadAll() {
-  const [rc, ro, roc, rcat] = await Promise.all([
+  const [rc, ro, roc, rcat, rcob] = await Promise.all([
     sb.from('clientes').select('*').eq('escritorio_id', ESCRITORIO_ID).order('criado', {ascending:false}),
     sb.from('obrigacoes').select('*').eq('escritorio_id', ESCRITORIO_ID).order('vencimento'),
     sb.from('orcamentos').select('*').eq('escritorio_id', ESCRITORIO_ID).order('created_at', {ascending:false}),
     sb.from('catalogo').select('*').eq('escritorio_id', ESCRITORIO_ID).order('nome'),
+    sb.from('cobranças').select('*').eq('escritorio_id', ESCRITORIO_ID).order('created_at', {ascending:false}),
   ]);
   clientes    = rc.data || [];
   obrigacoes  = ro.data || [];
   orcamentos  = roc.data || [];
   catalogo    = rcat.data || [];
+  cobrancas   = rcob.data || [];
   await checkYearRollover();
 }
 
@@ -669,7 +726,7 @@ async function checkYearRollover() {
 }
 
 // ── NAVEGAÇÃO ──
-const TITLES = {dashboard:'Dashboard',clientes:'Clientes',obrigacoes:'Obrigações Fiscais',orcamentos:'Orçamentos',catalogo:'Catálogo de Serviços',documentos:'Documentos',assistente:'Assistente IA'};
+const TITLES = {dashboard:'Dashboard',clientes:'Clientes',obrigacoes:'Obrigações Fiscais',orcamentos:'Orçamentos',catalogo:'Catálogo de Serviços',documentos:'Documentos',financeiro:'Financeiro',assistente:'Assistente IA'};
 
 function navigate(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -683,11 +740,13 @@ function navigate(page) {
   if (page==='orcamentos') acts.innerHTML='<button class="btn btn-primary btn-sm" onclick="openModalOrcamento()">+ Novo Orçamento</button>';
   if (page==='obrigacoes') acts.innerHTML='<button class="btn btn-primary btn-sm" onclick="openModalObrigacao()">+ Nova Obrigação</button>';
   if (page==='catalogo')   acts.innerHTML='<button class="btn btn-primary btn-sm" onclick="openModalCatalogo()">+ Novo Serviço</button>';
+  if (page==='financeiro') acts.innerHTML='<button class="btn btn-primary btn-sm" onclick="gerarCobrancasMes()">⟳ Gerar Cobranças</button>';
   if (page==='dashboard')  renderDashboard();
   if (page==='clientes')   renderClientes();
   if (page==='obrigacoes') { renderObrigacoes(); renderCalFiscal(); }
   if (page==='orcamentos') renderOrcamentos();
   if (page==='catalogo')   renderCatalogo();
+  if (page==='financeiro') { initFinanceiro(); renderFinanceiro(); }
 }
 
 // ── DASHBOARD ──
@@ -697,7 +756,8 @@ function renderDashboard() {
   document.getElementById('stat-clientes').textContent  = clientes.filter(c=>c.status==='Ativo').length;
   document.getElementById('stat-vencendo').textContent  = obrigacoes.filter(o=>{const d=new Date(o.vencimento+'T00:00:00');return o.status==='Pendente'&&d>=today&&d<=in7;}).length;
   document.getElementById('stat-atrasadas').textContent = obrigacoes.filter(o=>{const d=new Date(o.vencimento+'T00:00:00');return o.status==='Pendente'&&d<today;}).length;
-  const hon = orcamentos.filter(o=>o.status==='Em Aberto').reduce((a,b)=>a+parseFloat(b.total||0),0);
+  const mesAtual = new Date().getMonth() + 1;
+  const hon = cobrancas.filter(o => o.status === 'Em Aberto' && o.mes === mesAtual && o.ano === ANO).reduce((a,b) => a+parseFloat(b.valor||0), 0);
   document.getElementById('stat-honorarios').textContent='R$'+hon.toLocaleString('pt-BR',{minimumFractionDigits:0});
 
   const proximas=obrigacoes.filter(o=>o.status!=='Entregue').slice(0,6);
@@ -731,12 +791,20 @@ function openModalCliente(id) {
     document.getElementById('c-cnpj').value=c.cnpj||'';
     document.getElementById('c-telfixo').value=c.telfixo||'';
     document.getElementById('c-telcel').value=c.telcel||'';
+    document.getElementById('c-tipo_contrato').value=c.tipo_contrato||'Recorrente';
   } else {
     fields.forEach(f=>{const el=document.getElementById('c-'+f);if(el)el.value='';});
     ['c-cpf','c-cnpj','c-telfixo','c-telcel'].forEach(f=>document.getElementById(f).value='');
     document.getElementById('c-status').value='Ativo';
+    document.getElementById('c-tipo_contrato').value='Recorrente';
   }
+  toggleHonorario();
   document.getElementById('modal-cliente').classList.remove('hidden');
+}
+
+function toggleHonorario() {
+  const tipo = document.getElementById('c-tipo_contrato').value;
+  document.getElementById('grupo-honorario').style.display = tipo === 'Recorrente' ? 'flex' : 'none';
 }
 
 async function saveCliente() {
@@ -744,11 +812,12 @@ async function saveCliente() {
   if (!nome||!regime){alert('Preencha nome e regime tributário.');return;}
   const btn=document.getElementById('btn-save-cliente');
   btn.innerHTML='<div class="spinner"></div>'; btn.disabled=true;
+  const tipo_contrato = document.getElementById('c-tipo_contrato').value;
   const data={
-    nome, regime,
+    nome, regime, tipo_contrato,
     cpf: document.getElementById('c-cpf').value,
     cnpj: document.getElementById('c-cnpj').value,
-    honorario: parseFloat(document.getElementById('c-honorario').value)||null,
+    honorario: tipo_contrato === 'Recorrente' ? (parseFloat(document.getElementById('c-honorario').value)||null) : null,
     telfixo: document.getElementById('c-telfixo').value,
     telcel: document.getElementById('c-telcel').value,
     email: document.getElementById('c-email').value,
@@ -794,7 +863,7 @@ function renderClientes() {
         <td class="text-sm">${doc}</td>
         <td class="text-sm">${fones}</td>
         <td><span class="regime-tag regime-${rk}">${esc(c.regime)}</span></td>
-        <td class="text-sm">${c.honorario?'R$ '+parseFloat(c.honorario).toLocaleString('pt-BR',{minimumFractionDigits:2}):'—'}</td>
+      <td class="text-sm">${c.tipo_contrato === 'Recorrente' && c.honorario ? 'R$ '+parseFloat(c.honorario).toLocaleString('pt-BR',{minimumFractionDigits:2})+'/mês' : c.tipo_contrato === 'Avulso' ? '<span class="badge badge-purple">Avulso</span>' : '—'}</td>
         <td><span class="badge ${c.status==='Ativo'?'badge-green':'badge-red'}">${c.status}</span></td>
         <td><div class="actions-cell"><button class="btn btn-ghost btn-sm" onclick="openModalCliente('${c.id}')">✎</button><button class="btn btn-danger btn-sm" onclick="deleteCliente('${c.id}')">✕</button></div></td>
       </tr>`;
@@ -1253,6 +1322,95 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 
 document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.add('hidden');}));
+
+// ── FINANCEIRO ──
+function initFinanceiro() {
+  const hoje = new Date();
+  const selMes = document.getElementById('fin-mes');
+  const selAno = document.getElementById('fin-ano');
+  // Popula anos
+  if (!selAno.options.length) {
+    for (let a = ANO - 1; a <= ANO + 1; a++) {
+      const opt = document.createElement('option');
+      opt.value = a; opt.textContent = a;
+      if (a === ANO) opt.selected = true;
+      selAno.appendChild(opt);
+    }
+  }
+  selMes.value = hoje.getMonth() + 1;
+}
+
+async function gerarCobrancasMes() {
+  const mes = parseInt(document.getElementById('fin-mes').value);
+  const ano = parseInt(document.getElementById('fin-ano').value);
+  const recorrentes = clientes.filter(c => c.status === 'Ativo' && c.tipo_contrato === 'Recorrente' && c.honorario);
+  if (!recorrentes.length) { toast('Nenhum cliente recorrente com honorário cadastrado.'); return; }
+  let gerados = 0;
+  for (const c of recorrentes) {
+    const jaExiste = cobrancas.find(cb => cb.cliente_id === c.id && cb.mes === mes && cb.ano === ano);
+    if (jaExiste) continue;
+    const { data: novo } = await sb.from('cobranças').insert({
+      escritorio_id: ESCRITORIO_ID, cliente_id: c.id, user_id: currentUser.id,
+      mes, ano, valor: c.honorario, status: 'Em Aberto', obs: ''
+    }).select().single();
+    if (novo) { cobrancas.unshift(novo); gerados++; }
+  }
+  if (gerados > 0) { toast(`${gerados} cobrança(s) gerada(s)!`); renderFinanceiro(); }
+  else toast('Cobranças deste mês já foram geradas.');
+}
+
+async function toggleCobranca(id) {
+  const cb = cobrancas.find(x => x.id === id); if (!cb) return;
+  const ciclo = ['Em Aberto', 'Pago', 'Atrasado'];
+  const novoStatus = ciclo[(ciclo.indexOf(cb.status) + 1) % ciclo.length];
+  const pago_em = novoStatus === 'Pago' ? new Date().toLocaleString('pt-BR') : null;
+  await sb.from('cobranças').update({ status: novoStatus, pago_em }).eq('id', id);
+  cb.status = novoStatus; cb.pago_em = pago_em;
+  renderFinanceiro(); toast('Status atualizado!');
+}
+
+async function deleteCobranca(id) {
+  if (!confirm('Excluir esta cobrança?')) return;
+  await sb.from('cobranças').delete().eq('id', id);
+  cobrancas = cobrancas.filter(c => c.id !== id);
+  renderFinanceiro(); toast('Cobrança excluída.');
+}
+
+function renderFinanceiro() {
+  const mes = parseInt(document.getElementById('fin-mes')?.value || new Date().getMonth() + 1);
+  const ano = parseInt(document.getElementById('fin-ano')?.value || ANO);
+  const doMes = cobrancas.filter(cb => cb.mes === mes && cb.ano === ano);
+
+  const recebido = doMes.filter(cb => cb.status === 'Pago').reduce((a, b) => a + parseFloat(b.valor || 0), 0);
+  const aberto   = doMes.filter(cb => cb.status === 'Em Aberto').reduce((a, b) => a + parseFloat(b.valor || 0), 0);
+  const atrasado = doMes.filter(cb => cb.status === 'Atrasado').reduce((a, b) => a + parseFloat(b.valor || 0), 0);
+
+  document.getElementById('fin-recebido').textContent = 'R$ ' + recebido.toLocaleString('pt-BR', {minimumFractionDigits:2});
+  document.getElementById('fin-aberto').textContent   = 'R$ ' + aberto.toLocaleString('pt-BR', {minimumFractionDigits:2});
+  document.getElementById('fin-atrasado').textContent = 'R$ ' + atrasado.toLocaleString('pt-BR', {minimumFractionDigits:2});
+
+  const el = document.getElementById('fin-lista');
+  if (!doMes.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">💸</div><div class="empty-text">Nenhuma cobrança para este mês.<br>Clique em "⟳ Gerar Cobranças" para criar automaticamente.</div></div>';
+    return;
+  }
+  el.innerHTML = doMes.map(cb => {
+    const cl = clientes.find(c => c.id === cb.cliente_id);
+    const badge = cb.status === 'Pago' ? 'badge-green' : cb.status === 'Atrasado' ? 'badge-red' : 'badge-yellow';
+    return `<div class="cobranca-item">
+      <div class="cobranca-left">
+        <div class="cobranca-nome">${cl ? esc(cl.nome) : '—'}</div>
+        ${cb.pago_em ? `<div class="pago-em">✓ Pago em ${cb.pago_em}</div>` : `<div class="cobranca-detalhe">${cl ? esc(cl.regime) : ''}</div>`}
+      </div>
+      <div class="cobranca-right">
+        <div class="cobranca-valor">R$ ${parseFloat(cb.valor).toLocaleString('pt-BR', {minimumFractionDigits:2})}</div>
+        <span class="badge ${badge}">${cb.status}</span>
+        <button class="btn btn-ghost btn-sm" onclick="toggleCobranca('${cb.id}')">⟳</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteCobranca('${cb.id}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
 
 // ── MÁSCARAS ──
 function maskCPF(el){
