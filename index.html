@@ -740,13 +740,13 @@ function navigate(page) {
   if (page==='orcamentos') acts.innerHTML='<button class="btn btn-primary btn-sm" onclick="openModalOrcamento()">+ Novo Orçamento</button>';
   if (page==='obrigacoes') acts.innerHTML='<button class="btn btn-primary btn-sm" onclick="openModalObrigacao()">+ Nova Obrigação</button>';
   if (page==='catalogo')   acts.innerHTML='<button class="btn btn-primary btn-sm" onclick="openModalCatalogo()">+ Novo Serviço</button>';
-  if (page==='financeiro') acts.innerHTML='<button class="btn btn-primary btn-sm" onclick="gerarCobrancasMes()">⟳ Gerar Cobranças</button>';
+  if (page==='financeiro') acts.innerHTML='';
   if (page==='dashboard')  renderDashboard();
   if (page==='clientes')   renderClientes();
   if (page==='obrigacoes') { renderObrigacoes(); renderCalFiscal(); }
   if (page==='orcamentos') renderOrcamentos();
   if (page==='catalogo')   renderCatalogo();
-  if (page==='financeiro') { initFinanceiro(); renderFinanceiro(); }
+  if (page==='financeiro') { initFinanceiro(); autoGerarCobrancas(); }
 }
 
 // ── DASHBOARD ──
@@ -832,7 +832,13 @@ async function saveCliente() {
     if (!error) { const idx=clientes.findIndex(c=>c.id===editingClienteId); clientes[idx]={...clientes[idx],...data}; }
   } else {
     const {data:novo,error}=await sb.from('clientes').insert({...data,criado:new Date().toISOString().slice(0,10)}).select().single();
-    if (!error) { clientes.unshift(novo); await autoObrigacoes(novo,ANO); const {data:obs}=await sb.from('obrigacoes').select('*').eq('escritorio_id',ESCRITORIO_ID).order('vencimento'); obrigacoes=obs||[]; }
+    if (!error) {
+      clientes.unshift(novo);
+      await autoObrigacoes(novo,ANO);
+      await gerarCobrancasNovoCliente(novo);
+      const {data:obs}=await sb.from('obrigacoes').select('*').eq('escritorio_id',ESCRITORIO_ID).order('vencimento');
+      obrigacoes=obs||[];
+    }
   }
   btn.innerHTML='Salvar Cliente'; btn.disabled=false;
   closeModal('modal-cliente'); renderClientes(); toast('Cliente salvo!');
@@ -1340,11 +1346,10 @@ function initFinanceiro() {
   selMes.value = hoje.getMonth() + 1;
 }
 
-async function gerarCobrancasMes() {
-  const mes = parseInt(document.getElementById('fin-mes').value);
-  const ano = parseInt(document.getElementById('fin-ano').value);
+async function autoGerarCobrancas() {
+  const mes = parseInt(document.getElementById('fin-mes')?.value || new Date().getMonth() + 1);
+  const ano = parseInt(document.getElementById('fin-ano')?.value || ANO);
   const recorrentes = clientes.filter(c => c.status === 'Ativo' && c.tipo_contrato === 'Recorrente' && c.honorario);
-  if (!recorrentes.length) { toast('Nenhum cliente recorrente com honorário cadastrado.'); return; }
   let gerados = 0;
   for (const c of recorrentes) {
     const jaExiste = cobrancas.find(cb => cb.cliente_id === c.id && cb.mes === mes && cb.ano === ano);
@@ -1355,8 +1360,25 @@ async function gerarCobrancasMes() {
     }).select().single();
     if (novo) { cobrancas.unshift(novo); gerados++; }
   }
-  if (gerados > 0) { toast(`${gerados} cobrança(s) gerada(s)!`); renderFinanceiro(); }
-  else toast('Cobranças deste mês já foram geradas.');
+  if (gerados > 0) toast(`${gerados} cobrança(s) gerada(s) automaticamente!`);
+  renderFinanceiro();
+}
+
+async function gerarCobrancasNovoCliente(cliente) {
+  if (cliente.status !== 'Ativo' || cliente.tipo_contrato !== 'Recorrente' || !cliente.honorario) return;
+  const hoje = new Date();
+  const rows = [];
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
+    const mes = d.getMonth() + 1;
+    const ano = d.getFullYear();
+    const jaExiste = cobrancas.find(cb => cb.cliente_id === cliente.id && cb.mes === mes && cb.ano === ano);
+    if (!jaExiste) rows.push({ escritorio_id: ESCRITORIO_ID, cliente_id: cliente.id, user_id: currentUser.id, mes, ano, valor: cliente.honorario, status: 'Em Aberto', obs: '' });
+  }
+  if (rows.length) {
+    const { data: novos } = await sb.from('cobranças').insert(rows).select();
+    if (novos) cobrancas.unshift(...novos);
+  }
 }
 
 async function toggleCobranca(id) {
