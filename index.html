@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ContaIA — Escritório Inteligente</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
+<script src="https://apis.google.com/js/api.js"></script>
+<style>
+  .drive-connected{background:rgba(62,207,142,0.08);border:1px solid rgba(62,207,142,0.2);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--green);display:flex;align-items:center;gap:8px;margin-bottom:16px;}
+  .drive-file{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;}
+  .drive-file:last-child{border-bottom:none;}
+  .drive-file:hover{opacity:0.8;}
+  .drive-file-icon{font-size:20px;flex-shrink:0;}
+  .drive-file-name{font-size:13px;flex:1;color:var(--text);}
+  .drive-file-date{font-size:11px;color:var(--text3);}
+  .drive-client-section{margin-bottom:20px;}
+  .drive-client-name{font-size:13px;font-weight:600;color:var(--accent2);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+  .kevin-warning{background:rgba(246,201,14,0.08);border:1px solid rgba(246,201,14,0.2);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--yellow);margin-bottom:16px;line-height:1.5;}
+</style>
+<style>
+  :root {
+    --bg:#0f0f12; --surface:#18181f; --surface2:#22222c; --surface3:#2c2c3a;
+    --border:#2e2e3e; --accent:#7c6af7; --accent2:#a89df7;
+    --accent-glow:rgba(124,106,247,0.18); --green:#3ecf8e; --red:#f56565;
+    --yellow:#f6c90e; --text:#eeeef2; --text2:#9999b3; --text3:#5c5c7a;
+    --radius:14px; --radius-sm:8px;
+    --sidebar-w:230px; --topbar-h:60px; --bottomnav-h:64px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;-webkit-tap-highlight-color:transparent;}
+
+  /* LOGIN */
+  #login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;padding:24px;}
+  .login-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:36px 32px;width:100%;max-width:400px;}
+  .login-logo{font-family:'DM Serif Display',serif;font-size:28px;color:var(--accent2);margin-bottom:6px;}
+  .login-sub{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:32px;}
+  .login-tabs{display:flex;gap:0;margin-bottom:24px;background:var(--surface2);border-radius:var(--radius-sm);padding:4px;}
+  .login-tab{flex:1;text-align:center;padding:8px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text3);transition:all 0.15s;}
+  .login-tab.active{background:var(--accent);color:#fff;}
+  .login-form{display:flex;flex-direction:column;gap:14px;}
+  .login-error{font-size:12px;color:var(--red);text-align:center;min-height:18px;}
+  .login-form input{font-size:16px;}
+
+  /* LOADING */
+  #loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:998;}
+  .loading-logo{font-family:'DM Serif Display',serif;font-size:32px;color:var(--accent2);animation:pulse 1.5s infinite;}
+  @keyframes pulse{0%,100%{opacity:0.4;}50%{opacity:1;}}
+
+  /* LAYOUT */
+  #app{display:none;flex:row;height:100dvh;overflow:hidden;}
+  #app.visible{display:flex;}
+  #sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:49;backdrop-filter:blur(2px);}
+  #sidebar-overlay.open{opacity:1;pointer-events:all;}
+
+  /* SIDEBAR */
+  #sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;transition:transform 0.25s ease;z-index:50;}
+  .sidebar-logo{padding:28px 24px 20px;border-bottom:1px solid var(--border);}
+  .sidebar-logo .logo-name{font-family:'DM Serif Display',serif;font-size:22px;color:var(--accent2);letter-spacing:-0.3px;}
+  .sidebar-logo .logo-sub{font-size:11px;color:var(--text3);margin-top:2px;letter-spacing:0.5px;text-transform:uppercase;}
+  .nav-section{padding:16px 12px 8px;}
+  .nav-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);padding:0 12px;margin-bottom:6px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;color:var(--text2);font-size:14px;font-weight:400;transition:all 0.15s;user-select:none;border:1px solid transparent;}
+  .nav-item:hover{background:var(--surface2);color:var(--text);}
+  .nav-item.active{background:var(--accent-glow);color:var(--accent2);border-color:rgba(124,106,247,0.25);font-weight:500;}
+  .nav-item svg{flex-shrink:0;opacity:0.8;}
+  .nav-item.active svg{opacity:1;}
+  .sidebar-footer{margin-top:auto;padding:16px;border-top:1px solid var(--border);}
+  .sidebar-user{font-size:12px;color:var(--text2);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sidebar-footer .version{font-size:11px;color:var(--text3);}
+
+  /* MAIN */
+  #main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+  .topbar{height:var(--topbar-h);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex-shrink:0;gap:12px;}
+  .topbar-left{display:flex;align-items:center;gap:12px;}
+  .topbar-title{font-family:'DM Serif Display',serif;font-size:20px;color:var(--text);white-space:nowrap;}
+  .topbar-actions{display:flex;gap:8px;align-items:center;flex-shrink:0;}
+  .menu-btn{display:none;background:none;border:none;color:var(--text2);cursor:pointer;padding:6px;border-radius:var(--radius-sm);}
+
+  /* BUTTONS */
+  .btn{padding:8px 16px;border-radius:var(--radius-sm);border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;transition:all 0.15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+  .btn-primary{background:var(--accent);color:#fff;}
+  .btn-primary:hover{background:#9080f9;}
+  .btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);}
+  .btn-ghost:hover{background:var(--surface2);color:var(--text);}
+  .btn-sm{padding:5px 11px;font-size:12px;}
+  .btn-danger{background:rgba(245,101,101,0.12);color:var(--red);border:1px solid rgba(245,101,101,0.2);}
+  .btn-danger:hover{background:rgba(245,101,101,0.2);}
+  .btn-success{background:rgba(62,207,142,0.12);color:var(--green);border:1px solid rgba(62,207,142,0.2);}
+  .btn-success:hover{background:rgba(62,207,142,0.2);}
+  .btn-mail{background:rgba(124,106,247,0.12);color:var(--accent2);border:1px solid rgba(124,106,247,0.2);}
+  .btn-mail:hover{background:rgba(124,106,247,0.22);}
+  .btn-logout{background:rgba(245,101,101,0.08);color:var(--red);border:1px solid rgba(245,101,101,0.15);width:100%;}
+
+  .content{flex:1;overflow-y:auto;padding:24px;-webkit-overflow-scrolling:touch;}
+
+  /* STATS */
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;position:relative;overflow:hidden;}
+  .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+  .stat-card.green::before{background:var(--green);}
+  .stat-card.purple::before{background:var(--accent);}
+  .stat-card.yellow::before{background:var(--yellow);}
+  .stat-card.red::before{background:var(--red);}
+  .stat-label{font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text3);margin-bottom:8px;}
+  .stat-value{font-family:'DM Serif Display',serif;font-size:28px;color:var(--text);}
+  .stat-sub{font-size:12px;color:var(--text3);margin-top:4px;}
+
+  .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;}
+  .card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:16px;text-transform:uppercase;letter-spacing:0.5px;}
+  .obligation-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+  .obligation-item:last-child{border-bottom:none;}
+  .oblig-left{display:flex;flex-direction:column;gap:2px;}
+  .oblig-name{font-size:13px;font-weight:500;color:var(--text);}
+  .oblig-client{font-size:11px;color:var(--text3);}
+
+  .badge{font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;}
+  .badge-red{background:rgba(245,101,101,0.15);color:var(--red);}
+  .badge-yellow{background:rgba(246,201,14,0.15);color:var(--yellow);}
+  .badge-green{background:rgba(62,207,142,0.15);color:var(--green);}
+  .badge-purple{background:rgba(124,106,247,0.15);color:var(--accent2);}
+
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  table{width:100%;border-collapse:collapse;}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text3);padding:0 14px 12px;font-weight:500;}
+  td{padding:11px 14px;font-size:13px;border-top:1px solid var(--border);vertical-align:middle;}
+  tr:hover td{background:var(--surface2);}
+  .regime-tag{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.3px;}
+  .regime-mei{background:rgba(62,207,142,0.12);color:var(--green);}
+  .regime-simplesnacional{background:rgba(124,106,247,0.12);color:var(--accent2);}
+  .regime-irpf{background:rgba(246,201,14,0.12);color:var(--yellow);}
+  .regime-lucropresumido{background:rgba(245,101,101,0.12);color:var(--red);}
+
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .form-group{display:flex;flex-direction:column;gap:6px;}
+  .form-group.full{grid-column:1/-1;}
+  label{font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;}
+  input,select,textarea{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;outline:none;transition:border-color 0.15s;width:100%;}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent);}
+  textarea{resize:vertical;min-height:80px;}
+  select option{background:var(--surface2);}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:16px;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);width:560px;max-width:100%;max-height:90dvh;overflow-y:auto;padding:24px;-webkit-overflow-scrolling:touch;}
+  .modal-title{font-family:'DM Serif Display',serif;font-size:20px;margin-bottom:22px;}
+  .modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:22px;padding-top:18px;border-top:1px solid var(--border);}
+
+  .email-picker{display:flex;flex-direction:column;gap:10px;}
+  .email-option{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:all 0.15s;}
+  .email-option:hover,.email-option:active{border-color:var(--accent);background:var(--accent-glow);}
+  .email-option-icon{font-size:22px;flex-shrink:0;}
+  .email-option-name{font-weight:500;font-size:14px;}
+  .email-option-desc{font-size:11px;color:var(--text3);}
+
+  .chat-wrap{display:flex;flex-direction:column;height:calc(100dvh - var(--topbar-h) - 48px);}
+  .chat-messages{flex:1;overflow-y:auto;padding:8px 0;display:flex;flex-direction:column;gap:16px;-webkit-overflow-scrolling:touch;}
+  .chat-msg{display:flex;gap:12px;align-items:flex-start;}
+  .chat-msg.user{flex-direction:row-reverse;}
+  .chat-avatar{width:34px;height:34px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;}
+  .chat-avatar.ai{background:var(--accent-glow);border:1px solid rgba(124,106,247,0.3);color:var(--accent2);}
+  .chat-avatar.user{background:var(--surface3);border:1px solid var(--border);color:var(--text2);}
+  .chat-bubble{max-width:75%;padding:12px 16px;border-radius:14px;font-size:14px;line-height:1.6;}
+  .chat-bubble.ai{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-top-left-radius:4px;}
+  .chat-bubble.user{background:var(--accent);color:#fff;border-top-right-radius:4px;}
+  .chat-input-row{display:flex;gap:10px;padding-top:14px;border-top:1px solid var(--border);margin-top:8px;}
+  .chat-input-row input{flex:1;}
+  .typing-indicator{display:flex;gap:4px;align-items:center;padding:4px 0;}
+  .typing-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);animation:typing 1.2s infinite;}
+  .typing-dot:nth-child(2){animation-delay:0.2s;}
+  .typing-dot:nth-child(3){animation-delay:0.4s;}
+  @keyframes typing{0%,60%,100%{opacity:0.3;transform:scale(1);}30%{opacity:1;transform:scale(1.3);}}
+
+  .cal-header{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
+  .cal-year{font-family:'DM Serif Display',serif;font-size:22px;color:var(--accent2);}
+  .cal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  .month-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;}
+  .month-name{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:10px;}
+  .oblig-line{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);}
+  .oblig-line:last-child{border-bottom:none;}
+  .oblig-day{font-weight:600;color:var(--accent2);font-size:11px;min-width:28px;text-align:right;}
+
+  /* CATÁLOGO */
+  .cat-tabs{display:flex;gap:0;margin-bottom:20px;background:var(--surface2);border-radius:var(--radius-sm);padding:4px;}
+  .cat-tab{flex:1;text-align:center;padding:8px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text3);transition:all 0.15s;}
+  .cat-tab.active{background:var(--accent);color:#fff;}
+  .cat-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+  .cat-item:last-child{border-bottom:none;}
+  .cat-nome{flex:1;font-size:13px;font-weight:500;}
+  .cat-valor{font-size:13px;color:var(--accent2);font-weight:600;min-width:90px;text-align:right;}
+
+  /* ORC CATALOGO */
+  .orc-cat-tabs{display:flex;gap:0;margin-bottom:14px;background:var(--surface2);border-radius:var(--radius-sm);padding:4px;}
+  .orc-cat-tab{flex:1;text-align:center;padding:7px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;color:var(--text3);transition:all 0.15s;}
+  .orc-cat-tab.active{background:var(--accent);color:#fff;}
+  .orc-cat-list{max-height:200px;overflow-y:auto;margin-bottom:14px;border:1px solid var(--border);border-radius:var(--radius-sm);}
+  .orc-cat-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;}
+  .orc-cat-item:last-child{border-bottom:none;}
+  .orc-cat-item:hover{background:var(--surface2);}
+  .orc-cat-item-nome{font-size:13px;}
+  .orc-cat-item-val{font-size:12px;color:var(--accent2);font-weight:600;}
+  .orc-divider{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;}
+  .orc-divider::before,.orc-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+
+  .orc-item{display:flex;gap:10px;align-items:center;margin-bottom:10px;}
+  .orc-item input{flex:1;}
+  .orc-item input.price{width:130px;flex:none;}
+  .orc-total{text-align:right;padding-top:12px;border-top:1px solid var(--border);font-family:'DM Serif Display',serif;font-size:22px;color:var(--accent2);}
+
+  .drive-info{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px 18px;margin-bottom:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .drive-connect-btn{margin-left:auto;}
+
+  .empty{text-align:center;padding:60px 20px;}
+  .empty-icon{font-size:48px;margin-bottom:14px;opacity:0.5;}
+  .empty-text{color:var(--text3);font-size:14px;line-height:1.6;}
+
+  .page{display:none;}
+  .page.active{display:block;animation:fadeIn 0.2s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  .hidden{display:none!important;}
+  .divider{border:none;border-top:1px solid var(--border);margin:18px 0;}
+  .text-xs{font-size:11px;color:var(--text3);}
+  .text-sm{font-size:13px;}
+  .actions-cell{display:flex;gap:5px;flex-wrap:wrap;}
+  .concluded-at{font-size:10px;color:var(--green);margin-top:2px;}
+  .search-bar{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 14px;margin-bottom:20px;}
+  .search-bar input{background:none;border:none;flex:1;color:var(--text);font-size:14px;padding:0;}
+  .search-bar input::placeholder{color:var(--text3);}
+  .spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surface3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 20px;font-size:13px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;}
+  .toast.show{opacity:1;}
+
+  #bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--bottomnav-h);background:var(--surface);border-top:1px solid var(--border);z-index:50;padding:0 4px;padding-bottom:env(safe-area-inset-bottom);}
+  .bnav-inner{display:flex;align-items:center;justify-content:space-around;height:100%;}
+  .bnav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 8px;border-radius:var(--radius-sm);cursor:pointer;color:var(--text3);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;transition:all 0.15s;flex:1;min-width:0;}
+  .bnav-item.active{color:var(--accent2);}
+  .bnav-item svg{opacity:0.7;}
+  .bnav-item.active svg{opacity:1;}
+
+  @media(max-width:900px){
+    #sidebar{position:fixed;top:0;left:0;bottom:0;transform:translateX(-100%);z-index:100;}
+    #sidebar.open{transform:translateX(0);}
+    #sidebar-overlay{display:block;opacity:0;pointer-events:none;transition:opacity 0.25s;}
+    #sidebar-overlay.open{opacity:1;pointer-events:all;}
+    .menu-btn{display:flex;}
+    .content{padding:16px;}
+    .stats-grid{grid-template-columns:repeat(2,1fr);}
+    .dash-grid{grid-template-columns:1fr;}
+  }
+  @media(max-width:640px){
+    #bottom-nav{display:block;}
+    .content{padding:14px;padding-bottom:calc(var(--bottomnav-h) + 14px + env(safe-area-inset-bottom));}
+    .stats-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
+    .stat-card{padding:14px 16px;}
+    .stat-value{font-size:22px;}
+    .dash-grid{grid-template-columns:1fr;}
+    .cal-grid{grid-template-columns:repeat(2,1fr);}
+    .form-grid{grid-template-columns:1fr;}
+    .topbar{padding:0 14px;}
+    .topbar-title{font-size:17px;}
+    .modal{padding:18px;}
+    .chat-wrap{height:calc(100dvh - var(--topbar-h) - var(--bottomnav-h) - env(safe-area-inset-bottom) - 40px);}
+    .chat-bubble{max-width:90%;}
+    table th:nth-child(n+4),table td:nth-child(n+4){white-space:nowrap;}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-screen">
+  <div class="loading-logo">ContaIA</div>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen" class="hidden">
+  <div class="login-box">
+    <div class="login-logo">ContaIA</div>
+    <div class="login-sub">Escritório Inteligente</div>
+    <div class="login-form">
+      <div class="form-group">
+        <label>E-mail</label>
+        <input type="email" id="auth-email" placeholder="seu@email.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label>Senha</label>
+        <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')submitAuth()">
+      </div>
+      <div class="login-error" id="auth-error"></div>
+      <button class="btn btn-primary" id="auth-btn" onclick="submitAuth()" style="justify-content:center">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- APP -->
+<div id="app">
+  <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <div id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-name">ContaIA</div>
+      <div class="logo-sub">Escritório Inteligente</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Painel</div>
+      <div class="nav-item active" onclick="navigate('dashboard');closeSidebar()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Gestão</div>
+      <div class="nav-item" onclick="navigate('clientes');closeSidebar()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Clientes
+      </div>
+      <div class="nav-item" onclick="navigate('obrigacoes');closeSidebar()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Obrigações Fiscais
+      </div>
+      <div class="nav-item" onclick="navigate('orcamentos');closeSidebar()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Orçamentos
+      </div>
+      <div class="nav-item" onclick="navigate('catalogo');closeSidebar()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Catálogo de Serviços
+      </div>
+      <div class="nav-item" onclick="navigate('documentos');closeSidebar()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        Documentos
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" id="sidebar-user"></div>
+      <button class="btn btn-logout btn-sm" onclick="logout()">Sair</button>
+      <div class="version" style="margin-top:10px">ContaIA v4.0 · <span id="footer-year"></span></div>
+    </div>
+  </div>
+
+  <div id="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="openSidebar()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="topbar-title" id="topbar-title">Dashboard</div>
+      </div>
+      <div class="topbar-actions" id="topbar-actions"></div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="stats-grid">
+          <div class="stat-card green"><div class="stat-label">Clientes Ativos</div><div class="stat-value" id="stat-clientes">0</div><div class="stat-sub">no sistema</div></div>
+          <div class="stat-card yellow"><div class="stat-label">Vence em 7 dias</div><div class="stat-value" id="stat-vencendo">0</div><div class="stat-sub">obrigações</div></div>
+          <div class="stat-card red"><div class="stat-label">Atrasadas</div><div class="stat-value" id="stat-atrasadas">0</div><div class="stat-sub">requer atenção</div></div>
+          <div class="stat-card purple"><div class="stat-label">Em Aberto</div><div class="stat-value" id="stat-honorarios">R$0</div><div class="stat-sub">honorários</div></div>
+        </div>
+        <div class="dash-grid">
+          <div class="card"><div class="card-title">⚠️ Próximas Obrigações</div><div id="dash-obrigacoes"><div class="empty"><div class="empty-icon">📅</div><div class="empty-text">Nenhuma obrigação cadastrada</div></div></div></div>
+          <div class="card"><div class="card-title">💰 Honorários Recentes</div><div id="dash-honorarios"><div class="empty"><div class="empty-icon">💸</div><div class="empty-text">Nenhum orçamento cadastrado</div></div></div></div>
+        </div>
+      </div>
+
+      <!-- CLIENTES -->
+      <div class="page" id="page-clientes">
+        <div class="search-bar">
+          <span style="color:var(--text3);font-size:14px">🔍</span>
+          <input type="text" placeholder="Buscar por nome, CPF/CNPJ ou regime..." id="search-clientes" oninput="renderClientes()">
+        </div>
+        <div class="card"><div id="table-clientes"><div class="empty"><div class="empty-icon">👥</div><div class="empty-text">Nenhum cliente cadastrado ainda.</div></div></div></div>
+      </div>
+
+      <!-- OBRIGAÇÕES -->
+      <div class="page" id="page-obrigacoes">
+        <div class="card" style="margin-bottom:20px">
+          <div class="cal-header">
+            <div class="card-title" style="margin-bottom:0">📅 Calendário Fiscal</div>
+            <div class="cal-year" id="cal-ano-display"></div>
+            <div class="text-xs">atualiza automaticamente</div>
+          </div>
+          <div class="cal-grid" id="cal-fiscal"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">✅ Controle de Obrigações</div>
+          <div id="table-obrigacoes"><div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Cadastre clientes para gerar obrigações automaticamente.</div></div></div>
+        </div>
+      </div>
+
+      <!-- ORÇAMENTOS -->
+      <div class="page" id="page-orcamentos">
+        <div class="card"><div id="table-orcamentos"><div class="empty"><div class="empty-icon">📄</div><div class="empty-text">Nenhum orçamento criado ainda.</div></div></div></div>
+      </div>
+
+      <!-- CATÁLOGO -->
+      <div class="page" id="page-catalogo">
+        <div class="card">
+          <div class="cat-tabs">
+            <div class="cat-tab active" onclick="switchCatTab('pj')">Pessoa Jurídica</div>
+            <div class="cat-tab" onclick="switchCatTab('pf')">Pessoa Física</div>
+          </div>
+          <div id="cat-lista-pj"></div>
+          <div id="cat-lista-pf" class="hidden"></div>
+        </div>
+      </div>
+
+      <!-- DOCUMENTOS -->
+      <div class="page" id="page-documentos">
+        <div class="drive-info" id="drive-info-bar">
+          <div style="font-size:28px">📁</div>
+          <div><div style="font-weight:600;margin-bottom:3px">Google Drive</div><div class="text-xs">Conecte sua conta para vincular documentos dos clientes.</div></div>
+          <button class="btn btn-primary btn-sm drive-connect-btn" id="btn-drive-connect" onclick="connectDrive()">Conectar Drive</button>
+        </div>
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div class="card-title" style="margin-bottom:0">📂 Documentos por Cliente</div>
+            <button class="btn btn-ghost btn-sm hidden" id="btn-drive-picker" onclick="openDrivePicker()">+ Vincular Arquivo</button>
+          </div>
+          <div id="docs-list"><div class="empty"><div class="empty-icon">🗂️</div><div class="empty-text">Conecte o Google Drive para começar.</div></div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <nav id="bottom-nav">
+    <div class="bnav-inner">
+      <div class="bnav-item active" id="bnav-dashboard" onclick="navigate('dashboard')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Início</div>
+      <div class="bnav-item" id="bnav-clientes" onclick="navigate('clientes')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Clientes</div>
+      <div class="bnav-item" id="bnav-obrigacoes" onclick="navigate('obrigacoes')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Prazos</div>
+      <div class="bnav-item" id="bnav-orcamentos" onclick="navigate('orcamentos')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Orçamentos</div>
+    </div>
+  </nav>
+</div>
+
+<!-- MODAIS -->
+<!-- Cliente -->
+<div class="modal-overlay hidden" id="modal-cliente">
+  <div class="modal">
+    <div class="modal-title" id="modal-cliente-title">Novo Cliente</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Nome / Razão Social *</label><input type="text" id="c-nome" autocomplete="off"></div>
+      <div class="form-group"><label>Regime Tributário *</label>
+        <select id="c-regime"><option value="">Selecione...</option><option value="MEI">MEI</option><option value="Simples Nacional">Simples Nacional</option><option value="IRPF">Pessoa Física (IRPF)</option><option value="Lucro Presumido">Lucro Presumido</option></select>
+      </div>
+      <div class="form-group"><label>CPF (XXX.XXX.XXX-XX)</label><input type="text" id="c-cpf" inputmode="numeric" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)" autocomplete="off"></div>
+      <div class="form-group"><label>CNPJ (XX.XXX.XXX/XXXX-XX)</label><input type="text" id="c-cnpj" inputmode="numeric" placeholder="00.000.000/0000-00" maxlength="18" oninput="maskCNPJ(this)" autocomplete="off"></div>
+      <div class="form-group"><label>Honorário Mensal (R$)</label><input type="number" id="c-honorario" inputmode="decimal"></div>
+      <div class="form-group"><label>E-mail</label><input type="email" id="c-email"></div>
+      <div class="form-group"><label>Telefone Fixo</label><input type="text" id="c-telfixo" inputmode="numeric" placeholder="(11) 3333-4444" maxlength="14" oninput="maskTelFixo(this)"></div>
+      <div class="form-group"><label>Celular / WhatsApp</label><input type="text" id="c-telcel" inputmode="numeric" placeholder="(11) 99999-9999" maxlength="15" oninput="maskTelCel(this)"></div>
+      <div class="form-group"><label>Atividade / Ramo</label><input type="text" id="c-atividade" autocomplete="off"></div>
+      <div class="form-group"><label>Status</label><select id="c-status"><option value="Ativo">Ativo</option><option value="Inativo">Inativo</option></select></div>
+      <div class="form-group full"><label>Observações</label><textarea id="c-obs"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-cliente')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-cliente" onclick="saveCliente()">Salvar Cliente</button>
+    </div>
+  </div>
+</div>
+
+<!-- Obrigação -->
+<div class="modal-overlay hidden" id="modal-obrigacao">
+  <div class="modal">
+    <div class="modal-title" id="modal-ob-title">Nova Obrigação</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Cliente</label><select id="ob-cliente"></select></div>
+      <div class="form-group"><label>Obrigação</label>
+        <select id="ob-tipo"><option value="">Selecione...</option><option>DAS MEI</option><option>DASN-SIMEI (Anual)</option><option>DAS Simples Nacional</option><option>DEFIS</option><option>DCTF</option><option>IRPF — Declaração Anual</option><option>ECF</option><option>ECD</option><option>eSocial</option><option>GFIP/SEFIP</option><option>Outra</option></select>
+      </div>
+      <div class="form-group"><label>Vencimento</label><input type="date" id="ob-vencimento"></div>
+      <div class="form-group"><label>Status</label><select id="ob-status"><option value="Pendente">Pendente</option><option value="Entregue">Entregue</option><option value="Atrasada">Atrasada</option></select></div>
+      <div class="form-group full"><label>Observações</label><textarea id="ob-obs"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-obrigacao')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-ob" onclick="saveObrigacao()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Orçamento -->
+<div class="modal-overlay hidden" id="modal-orcamento">
+  <div class="modal" style="width:640px">
+    <div class="modal-title">Novo Orçamento</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Cliente</label><select id="orc-cliente"></select></div>
+      <div class="form-group"><label>Validade</label><input type="date" id="orc-validade"></div>
+    </div>
+    <hr class="divider">
+    <div class="orc-cat-tabs">
+      <div class="orc-cat-tab active" onclick="switchOrcCatTab('pj')">Serviços PJ</div>
+      <div class="orc-cat-tab" onclick="switchOrcCatTab('pf')">Serviços PF</div>
+      <div class="orc-cat-tab" onclick="switchOrcCatTab('manual')">Avulso</div>
+    </div>
+    <div id="orc-cat-pj" class="orc-cat-list"></div>
+    <div id="orc-cat-pf" class="orc-cat-list hidden"></div>
+    <div id="orc-cat-manual" class="hidden">
+      <div class="orc-item">
+        <input type="text" id="orc-avulso-nome" placeholder="Nome do serviço...">
+        <input type="number" class="price" id="orc-avulso-val" placeholder="R$ 0,00" inputmode="decimal">
+        <button class="btn btn-success btn-sm" onclick="addAvulso()">+</button>
+      </div>
+    </div>
+    <div class="orc-divider">Serviços selecionados</div>
+    <div id="orc-itens"></div>
+    <div class="orc-total" id="orc-total-display">Total: R$ 0,00</div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-orcamento')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-orc" onclick="saveOrcamento()">Salvar Orçamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- Catálogo -->
+<div class="modal-overlay hidden" id="modal-catalogo">
+  <div class="modal">
+    <div class="modal-title" id="modal-cat-title">Novo Serviço</div>
+    <div class="form-grid">
+      <div class="form-group full"><label>Nome do Serviço *</label><input type="text" id="cat-nome" autocomplete="off"></div>
+      <div class="form-group"><label>Categoria *</label>
+        <select id="cat-categoria"><option value="pj">Pessoa Jurídica</option><option value="pf">Pessoa Física</option></select>
+      </div>
+      <div class="form-group"><label>Valor Padrão (R$)</label><input type="number" id="cat-valor" inputmode="decimal" placeholder="0,00"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-catalogo')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-cat" onclick="saveCatalogo()">Salvar Serviço</button>
+    </div>
+  </div>
+</div>
+
+<!-- E-mail -->
+<div class="modal-overlay hidden" id="modal-email">
+  <div class="modal" style="width:460px">
+    <div class="modal-title">Enviar Orçamento por E-mail</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:20px">Escolha o serviço de e-mail. O orçamento já vem preenchido automaticamente.</p>
+    <div class="email-picker" id="email-picker"></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-email')">Cancelar</button></div>
+  </div>
+</div>
+
+<script>
+const ANO = new Date().getFullYear();
+document.getElementById('footer-year').textContent = ANO;
+
+// ── SUPABASE ──
+const SUPA_URL = 'https://mynzlmltkugrtigxtlcp.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15bnpsbWx0a3VncnRpZ3h0bGNwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MTI0MjcsImV4cCI6MjA5NjM4ODQyN30.Dn-vqDt0FoGc3EAtlkHggkxsQn3y9BMo7ZeI4TpDe3k';
+const ESCRITORIO_ID = '111b68df-abf5-4a85-9f6d-ddb0150b84c7';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ── STATE ──
+let currentUser = null;
+let clientes = [], obrigacoes = [], orcamentos = [], catalogo = [];
+let editingClienteId = null, editingObId = null, editingCatId = null;
+let orcItens = [];
+let currentOrcTab = 'pj', currentCatTab = 'pj';
+
+// ── INIT ──
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    await loadAll();
+    showApp();
+  } else {
+    showLogin();
+  }
+}
+
+// Inicializa Drive quando tudo estiver carregado
+window.addEventListener('load', () => {
+  const tryInit = () => {
+    if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
+      initDrive();
+    } else {
+      setTimeout(tryInit, 300);
+    }
+  };
+  tryInit();
+});
+
+function showApp() {
+  document.getElementById('loading-screen').classList.add('hidden');
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('sidebar-user').textContent = currentUser?.email || '';
+  navigate('dashboard');
+}
+
+function showLogin() {
+  document.getElementById('loading-screen').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+// ── AUTH ──
+let loginMode = 'login';
+function switchLoginTab(mode) {
+  loginMode = mode;
+  document.querySelectorAll('.login-tab').forEach((t,i) => t.classList.toggle('active', (i===0&&mode==='login')||(i===1&&mode==='signup')));
+  document.getElementById('auth-btn').textContent = mode === 'login' ? 'Entrar' : 'Criar Conta';
+  document.getElementById('auth-error').textContent = '';
+}
+
+async function submitAuth() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const btn = document.getElementById('auth-btn');
+  if (!email || !password) { document.getElementById('auth-error').textContent = 'Preencha e-mail e senha.'; return; }
+  btn.innerHTML = '<div class="spinner"></div>'; btn.disabled = true;
+  const res = await sb.auth.signInWithPassword({ email, password });
+  if (res.error) {
+    document.getElementById('auth-error').style.color = 'var(--red)';
+    document.getElementById('auth-error').textContent = 'E-mail ou senha incorretos.';
+  } else {
+    currentUser = res.data.user;
+    await loadAll();
+    showApp();
+  }
+  btn.innerHTML = 'Entrar'; btn.disabled = false;
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  clientes=[]; obrigacoes=[]; orcamentos=[]; catalogo=[];
+  currentUser=null;
+  document.getElementById('app').classList.remove('visible');
+  showLogin();
+}
+
+// ── LOAD ──
+async function loadAll() {
+  const [rc, ro, roc, rcat] = await Promise.all([
+    sb.from('clientes').select('*').eq('escritorio_id', ESCRITORIO_ID).order('criado', {ascending:false}),
+    sb.from('obrigacoes').select('*').eq('escritorio_id', ESCRITORIO_ID).order('vencimento'),
+    sb.from('orcamentos').select('*').eq('escritorio_id', ESCRITORIO_ID).order('created_at', {ascending:false}),
+    sb.from('catalogo').select('*').eq('escritorio_id', ESCRITORIO_ID).order('nome'),
+  ]);
+  clientes    = rc.data || [];
+  obrigacoes  = ro.data || [];
+  orcamentos  = roc.data || [];
+  catalogo    = rcat.data || [];
+  await checkYearRollover();
+}
+
+// ── VIRADA DE ANO ──
+async function checkYearRollover() {
+  const key = `contaia_escritorio_${ESCRITORIO_ID}_${ANO}`;
+  if (localStorage.getItem(key)) return;
+  const prevKey = `contaia_escritorio_${ESCRITORIO_ID}_${ANO-1}`;
+  if (localStorage.getItem(prevKey) && clientes.length > 0) {
+    for (const c of clientes.filter(x => x.status === 'Ativo')) {
+      await autoObrigacoes(c, ANO);
+    }
+    const { data } = await sb.from('obrigacoes').select('*').eq('escritorio_id', ESCRITORIO_ID).order('vencimento');
+    obrigacoes = data || [];
+  }
+  localStorage.setItem(key, '1');
+}
+
+// ── NAVEGAÇÃO ──
+const TITLES = {dashboard:'Dashboard',clientes:'Clientes',obrigacoes:'Obrigações Fiscais',orcamentos:'Orçamentos',catalogo:'Catálogo de Serviços',documentos:'Documentos',assistente:'Assistente IA'};
+
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('#sidebar .nav-item').forEach(n => n.classList.toggle('active', n.getAttribute('onclick')?.includes("'"+page+"'")));
+  document.querySelectorAll('.bnav-item').forEach(n => n.classList.toggle('active', n.id==='bnav-'+page));
+  document.getElementById('topbar-title').textContent = TITLES[page]||page;
+  const acts = document.getElementById('topbar-actions');
+  acts.innerHTML = '';
+  if (page==='clientes')   acts.innerHTML='<button class="btn btn-primary btn-sm" onclick="openModalCliente()">+ Novo Cliente</button>';
+  if (page==='orcamentos') acts.innerHTML='<button class="btn btn-primary btn-sm" onclick="openModalOrcamento()">+ Novo Orçamento</button>';
+  if (page==='obrigacoes') acts.innerHTML='<button class="btn btn-primary btn-sm" onclick="openModalObrigacao()">+ Nova Obrigação</button>';
+  if (page==='catalogo')   acts.innerHTML='<button class="btn btn-primary btn-sm" onclick="openModalCatalogo()">+ Novo Serviço</button>';
+  if (page==='dashboard')  renderDashboard();
+  if (page==='clientes')   renderClientes();
+  if (page==='obrigacoes') { renderObrigacoes(); renderCalFiscal(); }
+  if (page==='orcamentos') renderOrcamentos();
+  if (page==='catalogo')   renderCatalogo();
+}
+
+// ── DASHBOARD ──
+function renderDashboard() {
+  const today=new Date(); today.setHours(0,0,0,0);
+  const in7=new Date(today); in7.setDate(in7.getDate()+7);
+  document.getElementById('stat-clientes').textContent  = clientes.filter(c=>c.status==='Ativo').length;
+  document.getElementById('stat-vencendo').textContent  = obrigacoes.filter(o=>{const d=new Date(o.vencimento+'T00:00:00');return o.status==='Pendente'&&d>=today&&d<=in7;}).length;
+  document.getElementById('stat-atrasadas').textContent = obrigacoes.filter(o=>{const d=new Date(o.vencimento+'T00:00:00');return o.status==='Pendente'&&d<today;}).length;
+  const hon = orcamentos.filter(o=>o.status==='Em Aberto').reduce((a,b)=>a+parseFloat(b.total||0),0);
+  document.getElementById('stat-honorarios').textContent='R$'+hon.toLocaleString('pt-BR',{minimumFractionDigits:0});
+
+  const proximas=obrigacoes.filter(o=>o.status!=='Entregue').slice(0,6);
+  const dob=document.getElementById('dash-obrigacoes');
+  if (!proximas.length) { dob.innerHTML='<div class="empty"><div class="empty-icon">📅</div><div class="empty-text">Nenhuma obrigação pendente</div></div>'; }
+  else dob.innerHTML=proximas.map(o=>{
+    const d=new Date(o.vencimento+'T00:00:00'), diff=Math.ceil((d-today)/(864e5));
+    const badge=diff<0?'<span class="badge badge-red">Atrasada</span>':diff<=7?`<span class="badge badge-yellow">${diff}d</span>`:`<span class="badge badge-green">${diff}d</span>`;
+    const cl=clientes.find(c=>c.id===o.cliente_id);
+    return `<div class="obligation-item"><div class="oblig-left"><div class="oblig-name">${esc(o.tipo)}</div><div class="oblig-client">${cl?esc(cl.nome):'—'} · ${fmtDate(o.vencimento)}</div></div>${badge}</div>`;
+  }).join('');
+
+  const dh=document.getElementById('dash-honorarios');
+  if (!orcamentos.length) { dh.innerHTML='<div class="empty"><div class="empty-icon">💸</div><div class="empty-text">Nenhum orçamento cadastrado</div></div>'; }
+  else dh.innerHTML=orcamentos.slice(0,5).map(o=>{
+    const cl=clientes.find(c=>c.id===o.cliente_id);
+    const badge=o.status==='Pago'?'badge-green':o.status==='Atrasado'?'badge-red':'badge-yellow';
+    return `<div class="obligation-item"><div class="oblig-left"><div class="oblig-name">${cl?esc(cl.nome):'—'}</div><div class="oblig-client">Validade: ${fmtDate(o.validade)}</div></div><div style="display:flex;align-items:center;gap:8px"><span style="font-weight:600;color:var(--accent2)">R$${parseFloat(o.total).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span><span class="badge ${badge}">${o.status}</span></div></div>`;
+  }).join('');
+}
+
+// ── CLIENTES ──
+function openModalCliente(id) {
+  editingClienteId = id||null;
+  document.getElementById('modal-cliente-title').textContent = id ? 'Editar Cliente' : 'Novo Cliente';
+  const fields=['nome','regime','honorario','email','atividade','status','obs'];
+  if (id) {
+    const c=clientes.find(x=>x.id===id);
+    fields.forEach(f=>{const el=document.getElementById('c-'+f);if(el)el.value=c[f]||'';});
+    document.getElementById('c-cpf').value=c.cpf||'';
+    document.getElementById('c-cnpj').value=c.cnpj||'';
+    document.getElementById('c-telfixo').value=c.telfixo||'';
+    document.getElementById('c-telcel').value=c.telcel||'';
+  } else {
+    fields.forEach(f=>{const el=document.getElementById('c-'+f);if(el)el.value='';});
+    ['c-cpf','c-cnpj','c-telfixo','c-telcel'].forEach(f=>document.getElementById(f).value='');
+    document.getElementById('c-status').value='Ativo';
+  }
+  document.getElementById('modal-cliente').classList.remove('hidden');
+}
+
+async function saveCliente() {
+  const nome=document.getElementById('c-nome').value.trim(), regime=document.getElementById('c-regime').value;
+  if (!nome||!regime){alert('Preencha nome e regime tributário.');return;}
+  const btn=document.getElementById('btn-save-cliente');
+  btn.innerHTML='<div class="spinner"></div>'; btn.disabled=true;
+  const data={
+    nome, regime,
+    cpf: document.getElementById('c-cpf').value,
+    cnpj: document.getElementById('c-cnpj').value,
+    honorario: parseFloat(document.getElementById('c-honorario').value)||null,
+    telfixo: document.getElementById('c-telfixo').value,
+    telcel: document.getElementById('c-telcel').value,
+    email: document.getElementById('c-email').value,
+    atividade: document.getElementById('c-atividade').value,
+    status: document.getElementById('c-status').value,
+    obs: document.getElementById('c-obs').value,
+    user_id: currentUser.id,
+    escritorio_id: ESCRITORIO_ID
+  };
+  if (editingClienteId) {
+    const {error}=await sb.from('clientes').update(data).eq('id',editingClienteId);
+    if (!error) { const idx=clientes.findIndex(c=>c.id===editingClienteId); clientes[idx]={...clientes[idx],...data}; }
+  } else {
+    const {data:novo,error}=await sb.from('clientes').insert({...data,criado:new Date().toISOString().slice(0,10)}).select().single();
+    if (!error) { clientes.unshift(novo); await autoObrigacoes(novo,ANO); const {data:obs}=await sb.from('obrigacoes').select('*').eq('escritorio_id',ESCRITORIO_ID).order('vencimento'); obrigacoes=obs||[]; }
+  }
+  btn.innerHTML='Salvar Cliente'; btn.disabled=false;
+  closeModal('modal-cliente'); renderClientes(); toast('Cliente salvo!');
+}
+
+async function deleteCliente(id) {
+  if (!confirm('Excluir este cliente e todas as suas obrigações e orçamentos?')) return;
+  await sb.from('clientes').delete().eq('id',id);
+  clientes=clientes.filter(c=>c.id!==id);
+  obrigacoes=obrigacoes.filter(o=>o.cliente_id!==id);
+  orcamentos=orcamentos.filter(o=>o.cliente_id!==id);
+  renderClientes(); toast('Cliente excluído.');
+}
+
+function renderClientes() {
+  const q=(document.getElementById('search-clientes')?.value||'').toLowerCase();
+  const lista=clientes.filter(c=>!q||c.nome.toLowerCase().includes(q)||(c.cpf||'').includes(q)||(c.cnpj||'').includes(q)||(c.regime||'').toLowerCase().includes(q));
+  const el=document.getElementById('table-clientes');
+  if (!lista.length){el.innerHTML='<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">Nenhum cliente encontrado.</div></div>';return;}
+  el.innerHTML=`<div class="table-wrap"><table>
+    <tr><th>Nome</th><th>CPF / CNPJ</th><th>Telefones</th><th>Regime</th><th>Honorário</th><th>Status</th><th>Ações</th></tr>
+    ${lista.map(c=>{
+      const rk=(c.regime||'').replace(/\s/g,'').toLowerCase();
+      const doc=[c.cpf,c.cnpj].filter(Boolean).join('<br>') || '—';
+      const fones=[c.telfixo?'📞 '+c.telfixo:'', c.telcel?'📱 '+c.telcel:''].filter(Boolean).join('<br>') || '—';
+      return`<tr>
+        <td><strong>${esc(c.nome)}</strong><br><span class="text-xs">${esc(c.atividade||'')}</span></td>
+        <td class="text-sm">${doc}</td>
+        <td class="text-sm">${fones}</td>
+        <td><span class="regime-tag regime-${rk}">${esc(c.regime)}</span></td>
+        <td class="text-sm">${c.honorario?'R$ '+parseFloat(c.honorario).toLocaleString('pt-BR',{minimumFractionDigits:2}):'—'}</td>
+        <td><span class="badge ${c.status==='Ativo'?'badge-green':'badge-red'}">${c.status}</span></td>
+        <td><div class="actions-cell"><button class="btn btn-ghost btn-sm" onclick="openModalCliente('${c.id}')">✎</button><button class="btn btn-danger btn-sm" onclick="deleteCliente('${c.id}')">✕</button></div></td>
+      </tr>`;
+    }).join('')}
+  </table></div>`;
+}
+
+// ── OBRIGAÇÕES ──
+async function autoObrigacoes(cliente, ano) {
+  const tpl={
+    'MEI':[...[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>({tipo:'DAS MEI',dia:20,mes:m})),{tipo:'DASN-SIMEI (Anual)',dia:31,mes:5}],
+    'Simples Nacional':[...[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>({tipo:'DAS Simples Nacional',dia:20,mes:m})),{tipo:'DEFIS',dia:31,mes:3}],
+    'IRPF':[{tipo:'IRPF — Declaração Anual',dia:30,mes:4}],
+    'Lucro Presumido':[...[2,5,8,11].map(m=>({tipo:'DCTF',dia:15,mes:m})),{tipo:'ECF',dia:31,mes:7},{tipo:'ECD',dia:31,mes:5}]
+  };
+  const rows=(tpl[cliente.regime]||[]).map(t=>{
+    const mm=String(t.mes).padStart(2,'0');
+    const dd=String(Math.min(t.dia,new Date(ano,t.mes,0).getDate())).padStart(2,'0');
+    return {user_id:currentUser.id,escritorio_id:ESCRITORIO_ID,cliente_id:cliente.id,tipo:t.tipo,vencimento:`${ano}-${mm}-${dd}`,status:'Pendente',obs:`Gerado automaticamente — ${ano}`,concluido_em:null};
+  });
+  if (rows.length) await sb.from('obrigacoes').insert(rows);
+}
+
+function openModalObrigacao(id) {
+  editingObId=id||null;
+  document.getElementById('modal-ob-title').textContent=id?'Editar Obrigação':'Nova Obrigação';
+  const sel=document.getElementById('ob-cliente');
+  sel.innerHTML='<option value="">Selecione...</option>'+clientes.map(c=>`<option value="${c.id}">${esc(c.nome)}</option>`).join('');
+  if (id) { const o=obrigacoes.find(x=>x.id===id); document.getElementById('ob-cliente').value=o.cliente_id; document.getElementById('ob-tipo').value=o.tipo; document.getElementById('ob-vencimento').value=o.vencimento; document.getElementById('ob-status').value=o.status; document.getElementById('ob-obs').value=o.obs||''; }
+  else    { ['ob-tipo','ob-vencimento','ob-obs'].forEach(f=>document.getElementById(f).value=''); document.getElementById('ob-cliente').value=''; document.getElementById('ob-status').value='Pendente'; }
+  document.getElementById('modal-obrigacao').classList.remove('hidden');
+}
+
+async function saveObrigacao() {
+  const cliente_id=document.getElementById('ob-cliente').value, tipo=document.getElementById('ob-tipo').value, vencimento=document.getElementById('ob-vencimento').value;
+  if (!cliente_id||!tipo||!vencimento){alert('Preencha cliente, obrigação e vencimento.');return;}
+  const btn=document.getElementById('btn-save-ob'); btn.innerHTML='<div class="spinner"></div>'; btn.disabled=true;
+  const data={cliente_id,tipo,vencimento,status:document.getElementById('ob-status').value,obs:document.getElementById('ob-obs').value,user_id:currentUser.id,escritorio_id:ESCRITORIO_ID};
+  if (editingObId) {
+    await sb.from('obrigacoes').update(data).eq('id',editingObId);
+    const idx=obrigacoes.findIndex(o=>o.id===editingObId); obrigacoes[idx]={...obrigacoes[idx],...data};
+  } else {
+    const {data:novo}=await sb.from('obrigacoes').insert({...data,concluido_em:null}).select().single();
+    if (novo) obrigacoes.push(novo);
+    obrigacoes.sort((a,b)=>new Date(a.vencimento)-new Date(b.vencimento));
+  }
+  btn.innerHTML='Salvar'; btn.disabled=false;
+  closeModal('modal-obrigacao'); renderObrigacoes(); toast('Obrigação salva!');
+}
+
+async function toggleObrigacao(id) {
+  const o=obrigacoes.find(x=>x.id===id); if(!o)return;
+  const novoStatus=o.status==='Entregue'?'Pendente':'Entregue';
+  const concluido_em=novoStatus==='Entregue'?new Date().toLocaleString('pt-BR'):null;
+  await sb.from('obrigacoes').update({status:novoStatus,concluido_em}).eq('id',id);
+  o.status=novoStatus; o.concluido_em=concluido_em;
+  renderObrigacoes();
+}
+
+async function deleteObrigacao(id) {
+  if (!confirm('Excluir esta obrigação?')) return;
+  await sb.from('obrigacoes').delete().eq('id',id);
+  obrigacoes=obrigacoes.filter(o=>o.id!==id);
+  renderObrigacoes(); toast('Obrigação excluída.');
+}
+
+function renderObrigacoes() {
+  const el=document.getElementById('table-obrigacoes');
+  if (!obrigacoes.length){el.innerHTML='<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Nenhuma obrigação cadastrada.</div></div>';return;}
+  const today=new Date(); today.setHours(0,0,0,0);
+  el.innerHTML=`<div class="table-wrap"><table>
+    <tr><th>Cliente</th><th>Obrigação</th><th>Vencimento</th><th>Status</th><th>Concluída em</th><th>Ações</th></tr>
+    ${obrigacoes.map(o=>{
+      const cl=clientes.find(c=>c.id===o.cliente_id);
+      const d=new Date(o.vencimento+'T00:00:00'), atrasada=d<today&&o.status==='Pendente';
+      const bc=o.status==='Entregue'?'badge-green':atrasada?'badge-red':'badge-yellow';
+      return`<tr>
+        <td><strong>${cl?esc(cl.nome):'—'}</strong><br><span class="text-xs">${cl?esc(cl.regime):''}</span></td>
+        <td class="text-sm">${esc(o.tipo)}</td>
+        <td class="text-sm">${fmtDate(o.vencimento)}</td>
+        <td><span class="badge ${bc}">${atrasada?'Atrasada':o.status}</span></td>
+        <td>${o.concluido_em?`<span class="concluded-at">✓ ${o.concluido_em}</span>`:'<span class="text-xs">—</span>'}</td>
+        <td><div class="actions-cell">
+          <button class="btn btn-sm ${o.status==='Entregue'?'btn-ghost':'btn-success'}" onclick="toggleObrigacao('${o.id}')">${o.status==='Entregue'?'↩':'✓'}</button>
+          <button class="btn btn-ghost btn-sm" onclick="openModalObrigacao('${o.id}')">✎</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteObrigacao('${o.id}')">✕</button>
+        </div></td>
+      </tr>`;
+    }).join('')}
+  </table></div>`;
+}
+
+function renderCalFiscal() {
+  document.getElementById('cal-ano-display').textContent=ANO;
+  const meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const cal={0:[['DAS MEI','20'],['DAS Simples','20']],1:[['DAS MEI','20'],['DAS Simples','20'],['DCTF','15']],2:[['DAS MEI','20'],['DAS Simples','20'],['DEFIS','31'],['DCTF','15']],3:[['DAS MEI','20'],['DAS Simples','20'],['IRPF','30'],['DCTF','15']],4:[['DAS MEI','20'],['DAS Simples','20'],['DASN-SIMEI','31'],['ECD','31'],['DCTF','15']],5:[['DAS MEI','20'],['DAS Simples','20']],6:[['DAS MEI','20'],['DAS Simples','20'],['ECF','31'],['DCTF','15']],7:[['DAS MEI','20'],['DAS Simples','20']],8:[['DAS MEI','20'],['DAS Simples','20']],9:[['DAS MEI','20'],['DAS Simples','20'],['DCTF','15']],10:[['DAS MEI','20'],['DAS Simples','20']],11:[['DAS MEI','20'],['DAS Simples','20'],['DCTF','15']]};
+  const hoje=new Date();
+  document.getElementById('cal-fiscal').innerHTML=meses.map((m,i)=>{
+    const cur=hoje.getMonth()===i&&hoje.getFullYear()===ANO;
+    return`<div class="month-card" style="${cur?'border-color:var(--accent);':''}"><div class="month-name" style="${cur?'color:var(--accent2);':''}">${m}${cur?' ◀':''}</div>${(cal[i]||[]).map(([ob,dia])=>`<div class="oblig-line"><span class="text-sm">${ob}</span><span class="oblig-day">dia ${dia}</span></div>`).join('')}</div>`;
+  }).join('');
+}
+
+// ── CATÁLOGO ──
+function switchCatTab(tab) {
+  currentCatTab=tab;
+  document.querySelectorAll('.cat-tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&tab==='pj')||(i===1&&tab==='pf')));
+  document.getElementById('cat-lista-pj').classList.toggle('hidden',tab!=='pj');
+  document.getElementById('cat-lista-pf').classList.toggle('hidden',tab!=='pf');
+}
+
+function openModalCatalogo(id) {
+  editingCatId=id||null;
+  document.getElementById('modal-cat-title').textContent=id?'Editar Serviço':'Novo Serviço';
+  if (id) { const s=catalogo.find(x=>x.id===id); document.getElementById('cat-nome').value=s.nome||''; document.getElementById('cat-categoria').value=s.categoria||'pj'; document.getElementById('cat-valor').value=s.valor||''; }
+  else    { document.getElementById('cat-nome').value=''; document.getElementById('cat-categoria').value=currentCatTab; document.getElementById('cat-valor').value=''; }
+  document.getElementById('modal-catalogo').classList.remove('hidden');
+}
+
+async function saveCatalogo() {
+  const nome=document.getElementById('cat-nome').value.trim();
+  if (!nome){alert('Informe o nome do serviço.');return;}
+  const btn=document.getElementById('btn-save-cat'); btn.innerHTML='<div class="spinner"></div>'; btn.disabled=true;
+  const data={nome,categoria:document.getElementById('cat-categoria').value,valor:parseFloat(document.getElementById('cat-valor').value)||0,user_id:currentUser.id,escritorio_id:ESCRITORIO_ID};
+  if (editingCatId) {
+    await sb.from('catalogo').update(data).eq('id',editingCatId);
+    const idx=catalogo.findIndex(s=>s.id===editingCatId); catalogo[idx]={...catalogo[idx],...data};
+  } else {
+    const {data:novo}=await sb.from('catalogo').insert(data).select().single();
+    if (novo) catalogo.push(novo);
+    catalogo.sort((a,b)=>a.nome.localeCompare(b.nome));
+  }
+  btn.innerHTML='Salvar Serviço'; btn.disabled=false;
+  closeModal('modal-catalogo'); renderCatalogo(); toast('Serviço salvo!');
+}
+
+async function deleteCatalogo(id) {
+  if (!confirm('Excluir este serviço do catálogo?')) return;
+  await sb.from('catalogo').delete().eq('id',id);
+  catalogo=catalogo.filter(s=>s.id!==id);
+  renderCatalogo(); toast('Serviço excluído.');
+}
+
+function renderCatalogo() {
+  ['pj','pf'].forEach(cat=>{
+    const el=document.getElementById('cat-lista-'+cat);
+    const lista=catalogo.filter(s=>s.categoria===cat);
+    if (!lista.length){el.innerHTML='<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Nenhum serviço cadastrado ainda.<br>Clique em "+ Novo Serviço" para começar.</div></div>';return;}
+    el.innerHTML=lista.map(s=>`<div class="cat-item">
+      <div class="cat-nome">${esc(s.nome)}</div>
+      <div class="cat-valor">${s.valor?'R$ '+parseFloat(s.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'—'}</div>
+      <div class="actions-cell">
+        <button class="btn btn-ghost btn-sm" onclick="openModalCatalogo('${s.id}')">✎</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteCatalogo('${s.id}')">✕</button>
+      </div>
+    </div>`).join('');
+  });
+}
+
+// ── ORÇAMENTOS ──
+function switchOrcCatTab(tab) {
+  currentOrcTab=tab;
+  document.querySelectorAll('.orc-cat-tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&tab==='pj')||(i===1&&tab==='pf')||(i===2&&tab==='manual')));
+  document.getElementById('orc-cat-pj').classList.toggle('hidden',tab!=='pj');
+  document.getElementById('orc-cat-pf').classList.toggle('hidden',tab!=='pf');
+  document.getElementById('orc-cat-manual').classList.toggle('hidden',tab!=='manual');
+}
+
+function openModalOrcamento() {
+  const sel=document.getElementById('orc-cliente');
+  sel.innerHTML='<option value="">Selecione...</option>'+clientes.map(c=>`<option value="${c.id}">${esc(c.nome)}</option>`).join('');
+  document.getElementById('orc-validade').value='';
+  orcItens=[]; renderOrcItens();
+  renderOrcCatalogo();
+  switchOrcCatTab('pj');
+  document.getElementById('modal-orcamento').classList.remove('hidden');
+}
+
+function renderOrcCatalogo() {
+  ['pj','pf'].forEach(cat=>{
+    const el=document.getElementById('orc-cat-'+cat);
+    const lista=catalogo.filter(s=>s.categoria===cat);
+    if (!lista.length){el.innerHTML='<div style="padding:14px;text-align:center;color:var(--text3);font-size:13px">Nenhum serviço no catálogo de '+( cat==='pj'?'PJ':'PF')+'.<br>Adicione em "Catálogo de Serviços".</div>';return;}
+    el.innerHTML=lista.map(s=>`<div class="orc-cat-item" onclick="addFromCatalogo('${s.id}')">
+      <span class="orc-cat-item-nome">${esc(s.nome)}</span>
+      <span class="orc-cat-item-val">${s.valor?'R$ '+parseFloat(s.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'—'}</span>
+    </div>`).join('');
+  });
+}
+
+function addFromCatalogo(id) {
+  const s=catalogo.find(x=>x.id===id); if(!s)return;
+  const existe=orcItens.findIndex(i=>i.catId===id);
+  if (existe>=0) { toast('Serviço já adicionado.'); return; }
+  orcItens.push({catId:id,desc:s.nome,valor:s.valor||0});
+  renderOrcItens(); toast('Serviço adicionado!');
+}
+
+function addAvulso() {
+  const nome=document.getElementById('orc-avulso-nome').value.trim();
+  const valor=parseFloat(document.getElementById('orc-avulso-val').value)||0;
+  if (!nome){alert('Informe o nome do serviço avulso.');return;}
+  orcItens.push({catId:null,desc:nome,valor});
+  document.getElementById('orc-avulso-nome').value='';
+  document.getElementById('orc-avulso-val').value='';
+  renderOrcItens(); toast('Serviço avulso adicionado!');
+}
+
+function removeOrcItem(i){orcItens.splice(i,1);renderOrcItens();}
+
+function renderOrcItens() {
+  const el=document.getElementById('orc-itens');
+  if (!orcItens.length){el.innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:10px">Nenhum serviço adicionado ainda.</div>';updateOrcTotal();return;}
+  el.innerHTML=orcItens.map((it,i)=>`<div class="orc-item">
+    <input type="text" value="${esc(it.desc)}" placeholder="Descrição..." oninput="orcItens[${i}].desc=this.value">
+    <input type="number" class="price" value="${it.valor||''}" placeholder="R$ 0,00" inputmode="decimal" oninput="orcItens[${i}].valor=parseFloat(this.value)||0;updateOrcTotal()">
+    <button class="btn btn-danger btn-sm" onclick="removeOrcItem(${i})">✕</button>
+  </div>`).join('');
+  updateOrcTotal();
+}
+
+function updateOrcTotal(){
+  const t=orcItens.reduce((a,b)=>a+(parseFloat(b.valor)||0),0);
+  document.getElementById('orc-total-display').textContent='Total: R$ '+t.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  return t;
+}
+
+async function saveOrcamento() {
+  const cliente_id=document.getElementById('orc-cliente').value;
+  if (!cliente_id){alert('Selecione um cliente.');return;}
+  if (!orcItens.length){alert('Adicione pelo menos um serviço.');return;}
+  const btn=document.getElementById('btn-save-orc'); btn.innerHTML='<div class="spinner"></div>'; btn.disabled=true;
+  const total=orcItens.reduce((a,b)=>a+(parseFloat(b.valor)||0),0);
+  const {data:novo}=await sb.from('orcamentos').insert({user_id:currentUser.id,escritorio_id:ESCRITORIO_ID,cliente_id,validade:document.getElementById('orc-validade').value||null,itens:orcItens,total,status:'Em Aberto',criado:new Date().toISOString().slice(0,10)}).select().single();
+  if (novo) orcamentos.unshift(novo);
+  btn.innerHTML='Salvar Orçamento'; btn.disabled=false;
+  closeModal('modal-orcamento'); renderOrcamentos(); toast('Orçamento salvo!');
+}
+
+async function toggleOrcStatus(id) {
+  const o=orcamentos.find(x=>x.id===id); if(!o)return;
+  const ciclo=['Em Aberto','Pago','Atrasado'];
+  const novoStatus=ciclo[(ciclo.indexOf(o.status)+1)%ciclo.length];
+  await sb.from('orcamentos').update({status:novoStatus}).eq('id',id);
+  o.status=novoStatus; renderOrcamentos();
+}
+
+async function deleteOrcamento(id) {
+  if (!confirm('Excluir este orçamento?')) return;
+  await sb.from('orcamentos').delete().eq('id',id);
+  orcamentos=orcamentos.filter(o=>o.id!==id);
+  renderOrcamentos(); toast('Orçamento excluído.');
+}
+
+function openEmailModal(id) {
+  const o=orcamentos.find(x=>x.id===id);
+  const cl=clientes.find(c=>c.id===o.cliente_id);
+  const dest=cl?.email||'';
+  const assunto=encodeURIComponent(`Orçamento de Serviços Contábeis — ${cl?.nome||''}`);
+  const corpo=buildEmailBody(o,cl);
+  const corpoEnc=encodeURIComponent(corpo);
+  const opts=[
+    {icon:'📧',name:'Gmail',desc:'Abre no Gmail (navegador)',url:`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(dest)}&su=${assunto}&body=${corpoEnc}`},
+    {icon:'📮',name:'Outlook',desc:'Abre no Outlook Web',url:`https://outlook.live.com/mail/0/deeplink/compose?to=${encodeURIComponent(dest)}&subject=${assunto}&body=${corpoEnc}`},
+    {icon:'📬',name:'Yahoo Mail',desc:'Abre no Yahoo Mail',url:`https://compose.mail.yahoo.com/?to=${encodeURIComponent(dest)}&subject=${assunto}&body=${corpoEnc}`},
+    {icon:'✉️',name:'App padrão',desc:'Abre o app de e-mail do dispositivo',url:`mailto:${dest}?subject=${assunto}&body=${corpoEnc}`},
+  ];
+  document.getElementById('email-picker').innerHTML=opts.map(op=>`<div class="email-option" onclick="sendVia(${JSON.stringify(op.url)})"><div class="email-option-icon">${op.icon}</div><div><div class="email-option-name">${op.name}</div><div class="email-option-desc">${op.desc}</div></div></div>`).join('');
+  document.getElementById('modal-email').classList.remove('hidden');
+}
+
+function sendVia(url){window.open(url,'_blank');closeModal('modal-email');}
+
+function buildEmailBody(o,cl) {
+  const linhas=(o.itens||[]).filter(i=>i.desc).map(i=>`  • ${i.desc}: R$ ${parseFloat(i.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})}`).join('\n');
+  return `Prezado(a) ${cl?.nome||'cliente'},\n\nSegue orçamento pelos serviços contábeis:\n\n${linhas}\n\nTOTAL: R$ ${parseFloat(o.total).toLocaleString('pt-BR',{minimumFractionDigits:2})}\n\nValidade: ${o.validade?fmtDate(o.validade):'a combinar'}\n\nEm caso de dúvidas, estou à disposição.\n\nAtenciosamente,`;
+}
+
+function renderOrcamentos() {
+  const el=document.getElementById('table-orcamentos');
+  if (!orcamentos.length){el.innerHTML='<div class="empty"><div class="empty-icon">📄</div><div class="empty-text">Nenhum orçamento criado ainda.</div></div>';return;}
+  el.innerHTML=`<div class="table-wrap"><table>
+    <tr><th>Cliente</th><th>Serviços</th><th>Total</th><th>Validade</th><th>Status</th><th>Ações</th></tr>
+    ${orcamentos.map(o=>{
+      const cl=clientes.find(c=>c.id===o.cliente_id);
+      const badge=o.status==='Pago'?'badge-green':o.status==='Atrasado'?'badge-red':'badge-yellow';
+      return`<tr>
+        <td><strong>${cl?esc(cl.nome):'—'}</strong></td>
+        <td class="text-xs">${(o.itens||[]).map(i=>esc(i.desc||'—')).join(', ')}</td>
+        <td style="font-weight:600;color:var(--accent2)">R$ ${parseFloat(o.total).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+        <td class="text-sm">${o.validade?fmtDate(o.validade):'—'}</td>
+        <td><span class="badge ${badge}">${o.status}</span></td>
+        <td><div class="actions-cell">
+          <button class="btn btn-mail btn-sm" onclick="openEmailModal('${o.id}')">✉</button>
+          <button class="btn btn-ghost btn-sm" onclick="toggleOrcStatus('${o.id}')">⟳</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteOrcamento('${o.id}')">✕</button>
+        </div></td>
+      </tr>`;
+    }).join('')}
+  </table></div>`;
+}
+
+// ── GOOGLE DRIVE (GIS + PICKER) ──
+const DRIVE_CLIENT_ID = '1063363807529-kr01ci3v1t5fl2272nj6q8derpj9i0od.apps.googleusercontent.com';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
+let driveAccessToken = null;
+let driveConnected = false;
+let driveFiles = [];
+let tokenClient = null;
+let pickerApiLoaded = false;
+
+function initDrive() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: DRIVE_CLIENT_ID,
+    scope: DRIVE_SCOPE,
+    callback: (res) => {
+      if (res.error) { toast('Erro ao conectar Drive: ' + res.error); return; }
+      driveAccessToken = res.access_token;
+      driveConnected = true;
+      const bar = document.getElementById('drive-info-bar');
+      bar.innerHTML = '<div style="font-size:20px">✅</div><div style="font-size:13px;color:var(--green);font-weight:500">Google Drive conectado</div><button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="connectDrive()">Reconectar</button>';
+      document.getElementById('btn-drive-picker').classList.remove('hidden');
+      toast('Google Drive conectado!');
+      renderDocumentos();
+    }
+  });
+  gapi.load('picker', () => { pickerApiLoaded = true; });
+}
+
+function connectDrive() {
+  if (!tokenClient) {
+    // GIS ainda não carregou, tenta inicializar e chama de novo
+    if (typeof google !== 'undefined' && google.accounts) {
+      initDrive();
+      setTimeout(() => tokenClient && tokenClient.requestAccessToken({ prompt: 'consent' }), 500);
+    } else {
+      toast('Biblioteca do Google ainda carregando. Tente novamente.');
+    }
+    return;
+  }
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+function openDrivePicker() {
+  if (!driveConnected) { toast('Conecte o Google Drive primeiro.'); return; }
+  if (clientes.length === 0) { toast('Cadastre um cliente primeiro.'); return; }
+  const opts = clientes.map(c => `<option value="${c.id}">${esc(c.nome)}</option>`).join('');
+  const sel = document.createElement('div');
+  sel.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px';
+  sel.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;width:420px;max-width:100%">
+    <div style="font-family:DM Serif Display,serif;font-size:18px;margin-bottom:16px">Vincular ao cliente</div>
+    <div class="form-group" style="margin-bottom:16px"><label>Cliente</label><select id="picker-cliente">${opts}</select></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="this.closest('div[style*=fixed]').remove()">Cancelar</button>
+      <button class="btn btn-primary" onclick="launchPicker(document.getElementById('picker-cliente').value);this.closest('div[style*=fixed]').remove()">Escolher arquivo</button>
+    </div>
+  </div>`;
+  document.body.appendChild(sel);
+}
+
+function launchPicker(clienteId) {
+  if (!clienteId || !pickerApiLoaded) { toast('Aguarde e tente novamente.'); return; }
+  const picker = new google.picker.PickerBuilder()
+    .addView(google.picker.ViewId.DOCS)
+    .setOAuthToken(driveAccessToken)
+    .setCallback((data) => {
+      if (data.action === google.picker.Action.PICKED) {
+        const doc = data.docs[0];
+        driveFiles.push({ id: doc.id, name: doc.name, url: doc.url, clienteId, mimeType: doc.mimeType });
+        renderDocumentos(); toast('Arquivo vinculado!');
+      }
+    })
+    .build();
+  picker.setVisible(true);
+}
+
+function renderDocumentos() {
+  const el = document.getElementById('docs-list');
+  if (!driveConnected) { el.innerHTML = '<div class="empty"><div class="empty-icon">🗂️</div><div class="empty-text">Conecte o Google Drive para começar.</div></div>'; return; }
+  if (!driveFiles.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">🗂️</div><div class="empty-text">Nenhum arquivo vinculado ainda.<br>Clique em "+ Vincular Arquivo" para começar.</div></div>'; return; }
+  const porCliente = {};
+  driveFiles.forEach(f => { if (!porCliente[f.clienteId]) porCliente[f.clienteId] = []; porCliente[f.clienteId].push(f); });
+  el.innerHTML = Object.entries(porCliente).map(([cid, files]) => {
+    const cl = clientes.find(c => c.id === cid);
+    const icon = (m) => m?.includes('pdf')?'📄':m?.includes('image')?'🖼️':m?.includes('sheet')?'📊':m?.includes('presentation')?'📑':'📁';
+    return `<div class="drive-client-section">
+      <div class="drive-client-name">👤 ${cl ? esc(cl.nome) : '—'}</div>
+      ${files.map((f,i) => `<div class="drive-file">
+        <div class="drive-file-icon">${icon(f.mimeType)}</div>
+        <div class="drive-file-name"><a href="${f.url}" target="_blank" style="color:var(--text);text-decoration:none">${esc(f.name)}</a></div>
+        <button class="btn btn-danger btn-sm" onclick="removeDriveFile('${f.id}')">✕</button>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function removeDriveFile(id) {
+  driveFiles = driveFiles.filter(f => f.id !== id);
+  renderDocumentos();
+}
+
+async function sendMessage(){
+  const input=document.getElementById('chat-input');
+  const msg=input.value.trim(); if(!msg)return;
+  input.value='';
+  const msgs=document.getElementById('chat-messages');
+  msgs.innerHTML+=`<div class="chat-msg user"><div class="chat-avatar user">Eu</div><div class="chat-bubble user">${esc(msg)}</div></div>`;
+  const tid='typing-'+Date.now();
+  msgs.innerHTML+=`<div class="chat-msg" id="${tid}"><div class="chat-avatar ai">K</div><div class="chat-bubble ai"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div></div>`;
+  msgs.scrollTop=msgs.scrollHeight;
+  const cl=clientes.map(c=>`${c.nome} (${c.regime})`).join(', ')||'nenhum cadastrado';
+  const systemPrompt = `Você é Kevin, assistente contábil e tributário especialista no sistema fiscal e contábil brasileiro. Você auxilia contadoras e contadores no exercício da profissão com profundidade técnica, precisão e responsabilidade.
+
+Suas áreas de expertise incluem:
+- Regimes tributários: MEI, Simples Nacional (Anexos I a V), Lucro Presumido, Lucro Real, IRPF
+- Obrigações acessórias: PGDAS-D, DASN-SIMEI, DEFIS, DCTF, ECF, ECD, SPED Fiscal, SPED Contribuições, EFD-Reinf, eSocial, GFIP/SEFIP, DIRF, RAIS, CAGED
+- Legislação: Código Tributário Nacional, Lei Complementar 123/2006 (Simples Nacional), RIR/2018, legislação do IPI, ICMS, ISS, PIS, COFINS, CSLL, IRPJ
+- Normas do CFC: NBCs, ITG, NBC TGs (CPC)
+- Planejamento tributário, enquadramento e desenquadramento de regimes
+- Abertura, alteração e encerramento de empresas (MEI, ME, EPP, LTDA, SA)
+- Folha de pagamento, pró-labore, encargos sociais, FGTS, INSS
+- IRPF: declaração anual, carnê-leão, ganho de capital, rendimentos isentos e tributáveis
+- Certidões, parcelamentos (REFIS, PERT), regularização fiscal
+
+Regras de resposta:
+1. Sempre cite a base legal quando der uma informação técnica (número da lei, instrução normativa, resolução do CFC, artigo do CTN etc.)
+2. Quando um prazo ou alíquota puder ter mudado, sinalize explicitamente: "Confirme no site da Receita Federal pois portarias podem alterar este prazo."
+3. Se não tiver certeza sobre um ponto específico, diga claramente "Não tenho certeza sobre este ponto específico — recomendo consultar a legislação vigente ou o Portal do CFC."
+4. NUNCA invente informações, valores, prazos ou normas. É preferível admitir incerteza do que dar uma informação errada.
+5. Responda em português, de forma clara, direta e profissional.
+6. Para questões complexas, estruture a resposta em tópicos para facilitar a leitura.
+
+Contexto do escritório: Ano fiscal atual: ${ANO}. Clientes: ${cl}.`;
+
+  try {
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,system:systemPrompt,messages:[{role:'user',content:msg}]})});
+    const data=await res.json();
+    const reply=data.content?.[0]?.text||'Não consegui processar sua pergunta.';
+    document.getElementById(tid).remove();
+    msgs.innerHTML+=`<div class="chat-msg"><div class="chat-avatar ai">K</div><div class="chat-bubble ai">${esc(reply).replace(/\n/g,'<br>')}</div></div>`;
+  } catch(e){
+    document.getElementById(tid).remove();
+    msgs.innerHTML+=`<div class="chat-msg"><div class="chat-avatar ai">K</div><div class="chat-bubble ai">Erro ao conectar. Verifique sua conexão.</div></div>`;
+  }
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+// ── SIDEBAR MOBILE ──
+function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('sidebar-overlay').classList.add('open');}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('open');}
+
+// ── UTILS ──
+function closeModal(id){document.getElementById(id).classList.add('hidden');}
+function fmtDate(s){if(!s)return'—';const[y,m,d]=s.split('-');return`${d}/${m}/${y}`;}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.add('hidden');}));
+
+// ── MÁSCARAS ──
+function maskCPF(el){
+  let v=el.value.replace(/\D/g,'').slice(0,11);
+  if(v.length>9) v=v.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/,'$1.$2.$3-$4');
+  else if(v.length>6) v=v.replace(/(\d{3})(\d{3})(\d{0,3})/,'$1.$2.$3');
+  else if(v.length>3) v=v.replace(/(\d{3})(\d{0,3})/,'$1.$2');
+  el.value=v;
+}
+function maskCNPJ(el){
+  let v=el.value.replace(/\D/g,'').slice(0,14);
+  if(v.length>12) v=v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/,'$1.$2.$3/$4-$5');
+  else if(v.length>8) v=v.replace(/(\d{2})(\d{3})(\d{3})(\d{0,4})/,'$1.$2.$3/$4');
+  else if(v.length>5) v=v.replace(/(\d{2})(\d{3})(\d{0,3})/,'$1.$2.$3');
+  else if(v.length>2) v=v.replace(/(\d{2})(\d{0,3})/,'$1.$2');
+  el.value=v;
+}
+function maskTelFixo(el){
+  let v=el.value.replace(/\D/g,'').slice(0,10);
+  if(v.length>6) v=v.replace(/(\d{2})(\d{4})(\d{0,4})/,'($1) $2-$3');
+  else if(v.length>2) v=v.replace(/(\d{2})(\d{0,4})/,'($1) $2');
+  else if(v.length>0) v=v.replace(/(\d{0,2})/,'($1');
+  el.value=v;
+}
+function maskTelCel(el){
+  let v=el.value.replace(/\D/g,'').slice(0,11);
+  if(v.length>7) v=v.replace(/(\d{2})(\d{5})(\d{0,4})/,'($1) $2-$3');
+  else if(v.length>2) v=v.replace(/(\d{2})(\d{0,5})/,'($1) $2');
+  else if(v.length>0) v=v.replace(/(\d{0,2})/,'($1');
+  el.value=v;
+}
+
+init();
+</script>
+</body>
+</html>
