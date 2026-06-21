@@ -650,7 +650,49 @@ function showApp() {
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('app').classList.add('visible');
   document.getElementById('sidebar-user').textContent = currentUser?.email || '';
+  initRealtime();
   navigate('dashboard');
+}
+
+// ── REALTIME ──
+function initRealtime() {
+  sb.channel('contaia-realtime')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes', filter: `escritorio_id=eq.${ESCRITORIO_ID}` }, async () => {
+      const { data } = await sb.from('clientes').select('*').eq('escritorio_id', ESCRITORIO_ID).order('criado', {ascending:false});
+      clientes = data || [];
+      const page = document.querySelector('.page.active')?.id;
+      if (page === 'page-clientes') renderClientes();
+      renderDashboard();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'obrigacoes', filter: `escritorio_id=eq.${ESCRITORIO_ID}` }, async () => {
+      const { data } = await sb.from('obrigacoes').select('*').eq('escritorio_id', ESCRITORIO_ID).order('vencimento');
+      obrigacoes = data || [];
+      const page = document.querySelector('.page.active')?.id;
+      if (page === 'page-obrigacoes') renderObrigacoes();
+      renderDashboard();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'orcamentos', filter: `escritorio_id=eq.${ESCRITORIO_ID}` }, async () => {
+      const { data } = await sb.from('orcamentos').select('*').eq('escritorio_id', ESCRITORIO_ID).order('created_at', {ascending:false});
+      orcamentos = data || [];
+      const page = document.querySelector('.page.active')?.id;
+      if (page === 'page-orcamentos') renderOrcamentos();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'catalogo', filter: `escritorio_id=eq.${ESCRITORIO_ID}` }, async () => {
+      const { data } = await sb.from('catalogo').select('*').eq('escritorio_id', ESCRITORIO_ID).order('nome');
+      catalogo = data || [];
+      const page = document.querySelector('.page.active')?.id;
+      if (page === 'page-catalogo') renderCatalogo();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'cobranças', filter: `escritorio_id=eq.${ESCRITORIO_ID}` }, async () => {
+      const { data } = await sb.from('cobranças').select('*').eq('escritorio_id', ESCRITORIO_ID).order('created_at', {ascending:false});
+      cobrancas = data || [];
+      const page = document.querySelector('.page.active')?.id;
+      if (page === 'page-financeiro') renderFinanceiro();
+      renderDashboard();
+    })
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') console.log('Realtime conectado!');
+    });
 }
 
 function showLogin() {
