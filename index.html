@@ -1504,6 +1504,8 @@ function renderFinHist() {
   renderLista(cobrancas.filter(cb => cb.status === 'Em Aberto'), 'fin-hist-aberto');
   renderLista(cobrancas.filter(cb => cb.status === 'Atrasado'), 'fin-hist-atrasadas');
 }
+
+function renderFinanceiro() {
   const mes = parseInt(document.getElementById('fin-mes')?.value || new Date().getMonth() + 1);
   const ano = parseInt(document.getElementById('fin-ano')?.value || ANO);
   const doMes = cobrancas.filter(cb => cb.mes === mes && cb.ano === ano);
@@ -1518,7 +1520,8 @@ function renderFinHist() {
 
   const el = document.getElementById('fin-lista');
   if (!doMes.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">💸</div><div class="empty-text">Nenhuma cobrança para este mês.<br>Clique em "⟳ Gerar Cobranças" para criar automaticamente.</div></div>';
+    el.innerHTML = '<div class="empty"><div class="empty-icon">💸</div><div class="empty-text">Nenhuma cobrança para este mês ainda.</div></div>';
+    renderFinHist();
     return;
   }
   el.innerHTML = doMes.map(cb => {
