@@ -23,15 +23,35 @@
   --red:      #f87171;
   --yellow:   #fbbf24;
   --text:     #f0f0f5;
-  --text2:    #8888aa;
-  --text3:    #44445a;
+  --text2:    #9999bb;
+  --text3:    #555577;
   --r:        12px;
   --r-sm:     8px;
   --nav-h:    60px;
   --bot-h:    68px;
 }
+
+@media(prefers-color-scheme:light){
+  :root {
+    --bg:       #f4f4f8;
+    --s1:       #ffffff;
+    --s2:       #f0f0f5;
+    --s3:       #e8e8f0;
+    --border:   #dddde8;
+    --border2:  #ccccdd;
+    --accent:   #6c63ff;
+    --accent-h: #5a52ee;
+    --accent-g: rgba(108,99,255,.1);
+    --green:    #059669;
+    --red:      #dc2626;
+    --yellow:   #d97706;
+    --text:     #111118;
+    --text2:    #555566;
+    --text3:    #888899;
+  }
+}
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:16px;-webkit-tap-highlight-color:transparent;}
 
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar{width:4px;height:4px;}
@@ -108,14 +128,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 /* ── BUTTONS ── */
 .btn{
   padding:7px 14px;border-radius:var(--r-sm);border:none;
-  cursor:pointer;font-family:'Inter',sans-serif;font-size:12px;font-weight:500;
+  cursor:pointer;font-family:'Inter',sans-serif;font-size:14px;font-weight:500;
   transition:all .12s;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;
 }
 .btn-primary{background:var(--accent);color:#fff;}
 .btn-primary:hover{background:var(--accent-h);}
 .btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);}
 .btn-ghost:hover{background:var(--s2);color:var(--text);}
-.btn-sm{padding:4px 10px;font-size:11px;}
+.btn-sm{padding:4px 10px;font-size:13px;}
 .btn-danger{background:rgba(248,113,113,.1);color:var(--red);border:1px solid rgba(248,113,113,.2);}
 .btn-danger:hover{background:rgba(248,113,113,.18);}
 .btn-success{background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.2);}
@@ -129,7 +149,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 
 /* ── CARDS ── */
 .card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:20px;}
-.card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);margin-bottom:16px;}
+.card-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);margin-bottom:16px;}
 
 /* ── STAT CARDS ── */
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
@@ -139,20 +159,20 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .stat.purple::after{background:var(--accent);}
 .stat.yellow::after{background:var(--yellow);}
 .stat.red::after{background:var(--red);}
-.stat-label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:8px;}
+.stat-label{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);margin-bottom:8px;}
 .stat-val{font-family:'DM Serif Display',serif;font-size:26px;color:var(--text);line-height:1;}
-.stat-sub{font-size:11px;color:var(--text3);margin-top:4px;}
+.stat-sub{font-size:12px;color:var(--text2);margin-top:4px;}
 
 /* ── DASH GRID ── */
 .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 .list-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
 .list-item:last-child{border-bottom:none;}
-.li-main{font-size:13px;font-weight:500;color:var(--text);}
-.li-sub{font-size:11px;color:var(--text2);margin-top:1px;}
+.li-main{font-size:15px;font-weight:500;color:var(--text);}
+.li-sub{font-size:13px;color:var(--text2);margin-top:1px;}
 .li-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 
 /* ── BADGES ── */
-.badge{font-size:9px;font-weight:600;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
+.badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
 .b-green{background:rgba(52,211,153,.12);color:var(--green);}
 .b-yellow{background:rgba(251,191,36,.12);color:var(--yellow);}
 .b-red{background:rgba(248,113,113,.12);color:var(--red);}
@@ -160,7 +180,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .b-gray{background:var(--s3);color:var(--text2);}
 
 /* ── REGIME TAGS ── */
-.regime{font-size:9px;font-weight:600;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.3px;}
+.regime{font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.3px;}
 .r-mei{background:rgba(52,211,153,.1);color:var(--green);}
 .r-simples{background:rgba(108,99,255,.1);color:var(--accent-h);}
 .r-irpf{background:rgba(251,191,36,.1);color:var(--yellow);}
@@ -169,8 +189,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 /* ── TABLE ── */
 .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 table{width:100%;border-collapse:collapse;}
-th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);padding:0 12px 10px;font-weight:500;white-space:nowrap;}
-td{padding:11px 12px;font-size:13px;border-top:1px solid var(--border);vertical-align:middle;white-space:nowrap;}
+th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);padding:0 12px 10px;font-weight:600;white-space:nowrap;}
+td{padding:11px 12px;font-size:15px;border-top:1px solid var(--border);vertical-align:middle;white-space:nowrap;color:var(--text);}
 tr:hover td{background:var(--s2);}
 .actions{display:flex;gap:5px;}
 
@@ -178,7 +198,7 @@ tr:hover td{background:var(--s2);}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 .fg{display:flex;flex-direction:column;gap:5px;}
 .fg.full{grid-column:1/-1;}
-.fg label{font-size:10px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
+.fg label{font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
 input,select,textarea{
   background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);
   padding:9px 11px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;
@@ -201,13 +221,13 @@ select option{background:var(--s2);}
 
 /* ── TABS ── */
 .tabs{display:flex;background:var(--s2);border-radius:var(--r-sm);padding:3px;gap:2px;margin-bottom:18px;}
-.tab{flex:1;text-align:center;padding:7px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;color:var(--text2);transition:all .12s;}
+.tab{flex:1;text-align:center;padding:7px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:500;color:var(--text2);transition:all .12s;}
 .tab.on{background:var(--accent);color:#fff;}
 
 /* ── EMPTY ── */
 .empty{text-align:center;padding:48px 20px;}
 .empty-icon{font-size:40px;margin-bottom:12px;opacity:.4;}
-.empty-text{color:var(--text2);font-size:13px;line-height:1.6;}
+.empty-text{color:var(--text2);font-size:15px;line-height:1.6;}
 
 /* ── SPINNER ── */
 .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;}
@@ -262,15 +282,15 @@ select option{background:var(--s2);}
 .fin-card.green::after{background:var(--green);}
 .fin-card.yellow::after{background:var(--yellow);}
 .fin-card.red::after{background:var(--red);}
-.fin-label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:5px;}
+.fin-label{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);margin-bottom:5px;}
 .fin-val{font-family:'DM Serif Display',serif;font-size:22px;color:var(--text);}
 .fin-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);}
 .fin-row:last-child{border-bottom:none;}
 .fin-left{display:flex;flex-direction:column;gap:2px;}
-.fin-name{font-size:13px;font-weight:500;}
-.fin-detail{font-size:11px;color:var(--text2);}
+.fin-name{font-size:15px;font-weight:500;color:var(--text);}
+.fin-detail{font-size:13px;color:var(--text2);}
 .fin-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
-.fin-amount{font-size:14px;font-weight:600;color:var(--accent-h);}
+.fin-amount{font-size:15px;font-weight:600;color:var(--accent-h);}
 
 /* ── DRIVE ── */
 .drive-bar{background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px 16px;margin-bottom:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
@@ -285,6 +305,12 @@ select option{background:var(--s2);}
 .email-opt-icon{font-size:20px;flex-shrink:0;}
 .email-opt-name{font-size:13px;font-weight:500;}
 .email-opt-desc{font-size:11px;color:var(--text2);}
+
+/* ── CAT OBRIG ── */
+.cat-obrig-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+.cat-obrig-item:last-child{border-bottom:none;}
+.cat-obrig-nome{flex:1;font-size:13px;}
+.cat-obrig-dias{font-size:12px;color:var(--text2);}
 
 /* ── TIPO CONTRATO TOGGLE ── */
 .tipo-toggle{display:flex;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;}
@@ -643,6 +669,27 @@ select option{background:var(--s2);}
       <div class="fg"><label>Categoria *</label><select id="cat-cat"><option value="pj">Pessoa Jurídica</option><option value="pf">Pessoa Física</option></select></div>
       <div class="fg"><label>Valor Sugerido (R$)</label><input type="number" id="cat-val" inputmode="decimal" placeholder="0,00"></div>
     </div>
+    <hr class="divider">
+    <div class="card-title" style="margin-bottom:12px">Obrigações Geradas ao Aceitar</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Quando um orçamento com este serviço for aceito, estas obrigações serão criadas automaticamente para o cliente.</p>
+    <div id="cat-obrig-lista"></div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+        <select id="cat-obrig-tipo" onchange="toggleCatObrigTipo()">
+          <option value="">Selecione a obrigação...</option>
+          <option>DAS MEI</option><option>DASN-SIMEI (Anual)</option>
+          <option>DAS Simples Nacional</option><option>DEFIS</option>
+          <option>DCTF</option><option>IRPF — Declaração Anual</option>
+          <option>ECF</option><option>ECD</option>
+          <option>eSocial</option><option>GFIP/SEFIP</option>
+          <option value="__livre__">Outra (digitar livremente)</option>
+        </select>
+        <input type="text" id="cat-obrig-tipo-livre" placeholder="Digite o nome da obrigação..." class="hidden" autocomplete="off">
+      </div>
+      <input type="number" id="cat-obrig-dias" placeholder="Dias p/ vencer" style="width:150px" inputmode="numeric" min="1">
+      <button class="btn btn-success btn-sm" onclick="addCatObrig()">+</button>
+    </div>
+    <p style="font-size:11px;color:var(--text2);margin-top:6px">Informe em quantos dias a obrigação vence após o início do serviço. Ex: IRPF vence em 120 dias (30/04).</p>
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeModal('m-cat')">Cancelar</button>
       <button class="btn btn-primary" id="btn-save-cat" onclick="saveCat()">Salvar Serviço</button>
@@ -1103,6 +1150,38 @@ async function gerarCobOrc(o){
       if(novas)cobrancas.push(...novas);
     }
   }
+
+  // Gera obrigações a partir dos serviços do catálogo
+  const dataBase=new Date((o.data_inicio||o.data_pagamento||new Date().toISOString().slice(0,10))+'T00:00:00');
+  const obrigRows=[];
+  for(const item of (o.itens||[])){
+    const servico=catalogo.find(s=>s.id===item.catId);
+    if(!servico||!servico.obrigacoes_geradas?.length)continue;
+    for(const og of servico.obrigacoes_geradas){
+      const venc=new Date(dataBase);
+      venc.setDate(venc.getDate()+og.dias);
+      const vencStr=venc.toISOString().slice(0,10);
+      // Verifica se já existe essa obrigação para esse cliente nessa data
+      const jaExiste=obrigacoes.find(ob=>ob.cliente_id===o.cliente_id&&ob.tipo===og.tipo&&ob.vencimento===vencStr);
+      if(!jaExiste){
+        obrigRows.push({
+          escritorio_id:ESC_ID,cliente_id:o.cliente_id,user_id:me.id,
+          tipo:og.tipo,vencimento:vencStr,status:'Pendente',
+          obs:`Gerado automaticamente via orçamento — ${servico.nome}`,
+          concluido_em:null
+        });
+      }
+    }
+  }
+  if(obrigRows.length){
+    const {data:novasOb}=await sb.from('obrigacoes').insert(obrigRows).select();
+    if(novasOb){
+      obrigacoes.push(...novasOb);
+      obrigacoes.sort((a,b)=>new Date(a.vencimento)-new Date(b.vencimento));
+      toast(`Obrigações geradas automaticamente!`);
+    }
+  }
+
   renderFin();
 }
 
@@ -1399,41 +1478,112 @@ async function delCob(id){
 
 // ── CATÁLOGO ──
 let catTabAtual='pj';
+let catObrigItens=[];
+
 function switchCatTab(t){
   catTabAtual=t;
   document.querySelectorAll('#page-catalogo .tab').forEach((el,i)=>el.classList.toggle('on',['pj','pf'][i]===t));
   document.getElementById('cat-pj').classList.toggle('hidden',t!=='pj');
   document.getElementById('cat-pf').classList.toggle('hidden',t!=='pf');
 }
+
 function openCat(id){
   editCatId=id||null;
   document.getElementById('m-cat-title').textContent=id?'Editar Serviço':'Novo Serviço';
-  if(id){const s=catalogo.find(x=>x.id===id);document.getElementById('cat-nome').value=s.nome||'';document.getElementById('cat-cat').value=s.categoria||'pj';document.getElementById('cat-val').value=s.valor||'';}
-  else{document.getElementById('cat-nome').value='';document.getElementById('cat-cat').value=catTabAtual;document.getElementById('cat-val').value='';}
+  if(id){
+    const s=catalogo.find(x=>x.id===id);
+    document.getElementById('cat-nome').value=s.nome||'';
+    document.getElementById('cat-cat').value=s.categoria||'pj';
+    document.getElementById('cat-val').value=s.valor||'';
+    catObrigItens=JSON.parse(JSON.stringify(s.obrigacoes_geradas||[]));
+  } else {
+    document.getElementById('cat-nome').value='';
+    document.getElementById('cat-cat').value=catTabAtual;
+    document.getElementById('cat-val').value='';
+    catObrigItens=[];
+  }
+  document.getElementById('cat-obrig-tipo').value='';
+  document.getElementById('cat-obrig-tipo-livre').value='';
+  document.getElementById('cat-obrig-tipo-livre').classList.add('hidden');
+  document.getElementById('cat-obrig-dias').value='';
+  renderCatObrigLista();
   document.getElementById('m-cat').classList.remove('hidden');
 }
+
+function toggleCatObrigTipo(){
+  const sel=document.getElementById('cat-obrig-tipo');
+  const livre=document.getElementById('cat-obrig-tipo-livre');
+  const isLivre=sel.value==='__livre__';
+  livre.classList.toggle('hidden',!isLivre);
+  if(isLivre)livre.focus();
+}
+
+function addCatObrig(){
+  const sel=document.getElementById('cat-obrig-tipo');
+  const livre=document.getElementById('cat-obrig-tipo-livre');
+  const dias=parseInt(document.getElementById('cat-obrig-dias').value);
+  let tipo=sel.value==='__livre__'?livre.value.trim():sel.value;
+  if(!tipo){toast('Selecione ou digite a obrigação.');return;}
+  if(!dias||dias<1){toast('Informe os dias para vencimento.');return;}
+  catObrigItens.push({tipo,dias});
+  sel.value='';
+  livre.value='';
+  livre.classList.add('hidden');
+  document.getElementById('cat-obrig-dias').value='';
+  renderCatObrigLista();
+}
+
+function removeCatObrig(i){
+  catObrigItens.splice(i,1);
+  renderCatObrigLista();
+}
+
+function renderCatObrigLista(){
+  const el=document.getElementById('cat-obrig-lista');
+  if(!catObrigItens.length){
+    el.innerHTML='<div style="color:var(--text2);font-size:13px;padding:8px 0">Nenhuma obrigação vinculada.</div>';
+    return;
+  }
+  el.innerHTML=catObrigItens.map((o,i)=>`
+    <div class="cat-obrig-item">
+      <div class="cat-obrig-nome">${esc(o.tipo)}</div>
+      <div class="cat-obrig-dias">vence em ${o.dias} dia${o.dias>1?'s':''}</div>
+      <button class="btn btn-danger btn-sm" onclick="removeCatObrig(${i})">✕</button>
+    </div>`).join('');
+}
+
 async function saveCat(){
   const nome=document.getElementById('cat-nome').value.trim();
   if(!nome){toast('Informe o nome do serviço.');return;}
   const btn=document.getElementById('btn-save-cat');btn.innerHTML='<div class="spin"></div>';btn.disabled=true;
-  const data={nome,categoria:document.getElementById('cat-cat').value,valor:parseFloat(document.getElementById('cat-val').value)||0,escritorio_id:ESC_ID,user_id:me.id};
-  if(editCatId){await sb.from('catalogo').update(data).eq('id',editCatId);const idx=catalogo.findIndex(s=>s.id===editCatId);catalogo[idx]={...catalogo[idx],...data};}
-  else{const {data:novo}=await sb.from('catalogo').insert(data).select().single();if(novo){catalogo.push(novo);catalogo.sort((a,b)=>a.nome.localeCompare(b.nome));}}
+  const data={nome,categoria:document.getElementById('cat-cat').value,valor:parseFloat(document.getElementById('cat-val').value)||0,obrigacoes_geradas:catObrigItens,escritorio_id:ESC_ID,user_id:me.id};
+  if(editCatId){
+    await sb.from('catalogo').update(data).eq('id',editCatId);
+    const idx=catalogo.findIndex(s=>s.id===editCatId);catalogo[idx]={...catalogo[idx],...data};
+  } else {
+    const {data:novo}=await sb.from('catalogo').insert(data).select().single();
+    if(novo){catalogo.push(novo);catalogo.sort((a,b)=>a.nome.localeCompare(b.nome));}
+  }
   btn.innerHTML='Salvar Serviço';btn.disabled=false;
   closeModal('m-cat');renderCat();toast('Serviço salvo!');
 }
+
 async function delCat(id){
   if(!confirm('Excluir este serviço do catálogo?'))return;
   await sb.from('catalogo').delete().eq('id',id);
   catalogo=catalogo.filter(s=>s.id!==id);renderCat();toast('Excluído.');
 }
+
 function renderCat(){
   ['pj','pf'].forEach(cat=>{
     const el=document.getElementById('cat-'+cat);
     const lista=catalogo.filter(s=>s.categoria===cat);
     if(!lista.length){el.innerHTML='<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Nenhum serviço cadastrado.<br>Clique em "+ Novo Serviço" para começar.</div></div>';return;}
     el.innerHTML=lista.map(s=>`<div class="fin-row">
-      <div class="fin-left"><div class="fin-name">${esc(s.nome)}</div></div>
+      <div class="fin-left">
+        <div class="fin-name">${esc(s.nome)}</div>
+        ${s.obrigacoes_geradas?.length?`<div class="fin-detail">${s.obrigacoes_geradas.length} obrigação${s.obrigacoes_geradas.length>1?'s':''} vinculada${s.obrigacoes_geradas.length>1?'s':''}</div>`:''}
+      </div>
       <div class="fin-right">
         <div class="fin-amount">${s.valor?'R$ '+parseFloat(s.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}):'—'}</div>
         <button class="btn btn-ghost btn-sm" onclick="openCat('${s.id}')">✎</button>
