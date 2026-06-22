@@ -544,7 +544,10 @@ select option{background:var(--s2);}
   <div class="modal">
     <div class="modal-title" id="m-cliente-title">Novo Cliente</div>
     <div class="form-grid">
-      <div class="fg full"><label>Nome / Razão Social *</label><input type="text" id="c-nome" autocomplete="off"></div>
+      <div class="fg"><label>Tratamento</label>
+        <select id="c-tratamento"><option value="Sr.">Sr.</option><option value="Sra.">Sra.</option></select>
+      </div>
+      <div class="fg"><label>Nome / Razão Social *</label><input type="text" id="c-nome" autocomplete="off"></div>
       <div class="fg"><label>Regime Tributário *</label>
         <select id="c-regime"><option value="">Selecione...</option><option value="MEI">MEI</option><option value="Simples Nacional">Simples Nacional</option><option value="IRPF">Pessoa Física (IRPF)</option><option value="Lucro Presumido">Lucro Presumido</option></select>
       </div>
@@ -576,9 +579,10 @@ select option{background:var(--s2);}
           <button class="tipo-btn" id="tb-recorrente" onclick="setTipo('Recorrente')">Recorrente</button>
         </div>
       </div>
-      <div class="fg" id="fg-venc"><label>Data de Vencimento do Pagamento</label><input type="date" id="o-vencimento"></div>
-      <div class="fg hidden" id="fg-inicio"><label>Data de Início</label><input type="date" id="o-inicio"></div>
-      <div class="fg"><label>Prazo de Conclusão</label><input type="date" id="o-prazo"></div>
+      <div class="fg" id="fg-pagamento"><label>Data de Pagamento</label><input type="date" id="o-pagamento"></div>
+      <div class="fg" id="fg-prazo"><label>Prazo de Conclusão</label><input type="date" id="o-prazo"></div>
+      <div class="fg hidden" id="fg-inicio"><label>Data de Início do Serviço</label><input type="date" id="o-inicio"></div>
+      <div class="fg hidden" id="fg-diapag"><label>Dia Fixo de Pagamento</label><input type="number" id="o-diapag" min="1" max="28" placeholder="Ex: 15" inputmode="numeric"></div>
     </div>
     <hr class="divider">
     <div class="card-title" style="margin-bottom:10px">Serviços do Catálogo</div>
@@ -866,9 +870,9 @@ function renderDash(){
 function openCliente(id){
   editCId=id||null;
   document.getElementById('m-cliente-title').textContent=id?'Editar Cliente':'Novo Cliente';
-  const fields=['nome','regime','status','cpf','cnpj','telfixo','telcel','email','atividade','obs'];
+  const fields=['tratamento','nome','regime','status','cpf','cnpj','telfixo','telcel','email','atividade','obs'];
   if(id){const c=clientes.find(x=>x.id===id);fields.forEach(f=>{const el=document.getElementById('c-'+f);if(el)el.value=c[f]||'';});}
-  else{fields.forEach(f=>{const el=document.getElementById('c-'+f);if(el)el.value='';});document.getElementById('c-status').value='Ativo';}
+  else{fields.forEach(f=>{const el=document.getElementById('c-'+f);if(el)el.value='';});document.getElementById('c-status').value='Ativo';document.getElementById('c-tratamento').value='Sr.';}
   document.getElementById('m-cliente').classList.remove('hidden');
 }
 async function saveCliente(){
@@ -877,7 +881,7 @@ async function saveCliente(){
   if(!nome||!regime){toast('Preencha nome e regime.');return;}
   const btn=document.getElementById('btn-save-c');
   btn.innerHTML='<div class="spin"></div>';btn.disabled=true;
-  const data={nome,regime,status:document.getElementById('c-status').value,cpf:document.getElementById('c-cpf').value,cnpj:document.getElementById('c-cnpj').value,telfixo:document.getElementById('c-telfixo').value,telcel:document.getElementById('c-telcel').value,email:document.getElementById('c-email').value,atividade:document.getElementById('c-atividade').value,obs:document.getElementById('c-obs').value,user_id:me.id,escritorio_id:ESC_ID};
+  const data={tratamento:document.getElementById('c-tratamento').value,nome,regime,status:document.getElementById('c-status').value,cpf:document.getElementById('c-cpf').value,cnpj:document.getElementById('c-cnpj').value,telfixo:document.getElementById('c-telfixo').value,telcel:document.getElementById('c-telcel').value,email:document.getElementById('c-email').value,atividade:document.getElementById('c-atividade').value,obs:document.getElementById('c-obs').value,user_id:me.id,escritorio_id:ESC_ID};
   if(editCId){
     await sb.from('clientes').update(data).eq('id',editCId);
     const idx=clientes.findIndex(c=>c.id===editCId);clientes[idx]={...clientes[idx],...data};
@@ -926,8 +930,12 @@ function setTipo(t){
   orcTipo=t;
   document.getElementById('tb-avulso').classList.toggle('on',t==='Avulso');
   document.getElementById('tb-recorrente').classList.toggle('on',t==='Recorrente');
-  document.getElementById('fg-venc').classList.toggle('hidden',t==='Recorrente');
+  // Avulso: data de pagamento + prazo de conclusão
+  document.getElementById('fg-pagamento').classList.toggle('hidden',t==='Recorrente');
+  document.getElementById('fg-prazo').classList.toggle('hidden',t==='Recorrente');
+  // Recorrente: data de início + dia fixo de pagamento + prazo de conclusão
   document.getElementById('fg-inicio').classList.toggle('hidden',t==='Avulso');
+  document.getElementById('fg-diapag').classList.toggle('hidden',t==='Avulso');
 }
 function switchOrcCatTab(t){
   orcCatTab=t;
@@ -946,20 +954,19 @@ function openOrc(id){
   editOrcId=id||null;
   document.getElementById('m-orc-title').textContent=id?'Editar Orçamento':'Novo Orçamento';
   const sel=document.getElementById('o-cliente');
-  sel.innerHTML='<option value="">Selecione cliente...</option>'+clientes.map(c=>`<option value="${c.id}">${esc(c.nome)}</option>`).join('');
+  sel.innerHTML='<option value="">Selecione cliente...</option>'+clientes.map(c=>`<option value="${c.id}">${esc(c.tratamento||'')} ${esc(c.nome)}</option>`).join('');
   if(id){
     const o=orcamentos.find(x=>x.id===id);
     sel.value=o.cliente_id;
     setTipo(o.tipo||'Avulso');
-    document.getElementById('o-vencimento').value=o.data_vencimento||'';
-    document.getElementById('o-inicio').value=o.data_inicio||'';
+    document.getElementById('o-pagamento').value=o.data_pagamento||'';
     document.getElementById('o-prazo').value=o.prazo_conclusao||'';
+    document.getElementById('o-inicio').value=o.data_inicio||'';
+    document.getElementById('o-diapag').value=o.dia_pagamento||'';
     orcItens=JSON.parse(JSON.stringify(o.itens||[]));
   } else {
     sel.value='';setTipo('Avulso');
-    document.getElementById('o-vencimento').value='';
-    document.getElementById('o-inicio').value='';
-    document.getElementById('o-prazo').value='';
+    ['o-pagamento','o-prazo','o-inicio','o-diapag'].forEach(f=>document.getElementById(f).value='');
     orcItens=[];
   }
   renderOrcItens();renderOrcCat();
@@ -1012,25 +1019,28 @@ async function saveOrc(){
   const cid=document.getElementById('o-cliente').value;
   if(!cid){toast('Selecione um cliente.');return;}
   if(!orcItens.length){toast('Adicione pelo menos um serviço.');return;}
-  if(orcTipo==='Avulso'&&!document.getElementById('o-vencimento').value){toast('Informe a data de vencimento.');return;}
+  if(orcTipo==='Avulso'&&!document.getElementById('o-pagamento').value){toast('Informe a data de pagamento.');return;}
   if(orcTipo==='Recorrente'&&!document.getElementById('o-inicio').value){toast('Informe a data de início.');return;}
+  if(orcTipo==='Recorrente'&&!document.getElementById('o-diapag').value){toast('Informe o dia fixo de pagamento.');return;}
   const btn=document.getElementById('btn-save-o');btn.innerHTML='<div class="spin"></div>';btn.disabled=true;
   const total=updateTotal();
   const data={
     cliente_id:cid,tipo:orcTipo,itens:orcItens,total,
-    data_vencimento:orcTipo==='Avulso'?document.getElementById('o-vencimento').value:null,
+    data_pagamento:orcTipo==='Avulso'?document.getElementById('o-pagamento').value:null,
     data_inicio:orcTipo==='Recorrente'?document.getElementById('o-inicio').value:null,
-    dia_cobranca:orcTipo==='Recorrente'?new Date(document.getElementById('o-inicio').value+'T00:00:00').getDate():null,
+    dia_pagamento:orcTipo==='Recorrente'?parseInt(document.getElementById('o-diapag').value)||null:null,
+    dia_cobranca:orcTipo==='Recorrente'?parseInt(document.getElementById('o-diapag').value)||null:null,
     prazo_conclusao:document.getElementById('o-prazo').value||null,
     status:'Rascunho',ativo:true,
     escritorio_id:ESC_ID,user_id:me.id
   };
   if(editOrcId){
     await sb.from('orcamentos').update(data).eq('id',editOrcId);
-    const idx=orcamentos.findIndex(o=>o.id===editOrcId);orcamentos[idx]={...orcamentos[idx],...data};
+    const idx=orcamentos.findIndex(o=>o.id===editOrcId);
+    orcamentos[idx]={...orcamentos[idx],...data};
   } else {
     const {data:novo}=await sb.from('orcamentos').insert(data).select().single();
-    if(novo)orcamentos.unshift(novo);
+    if(novo){orcamentos.unshift(novo);}
   }
   btn.innerHTML='Salvar Orçamento';btn.disabled=false;
   closeModal('m-orc');renderOrc();toast('Orçamento salvo!');
@@ -1038,18 +1048,24 @@ async function saveOrc(){
 
 async function changeOrcStatus(id,status){
   const o=orcamentos.find(x=>x.id===id);if(!o)return;
+  const jaAceito=o.aceito_em;
   const upd={status};
-  if(status==='Aceito'&&!o.aceito_em){upd.aceito_em=new Date().toISOString().slice(0,10);}
+  if(status==='Aceito'&&!jaAceito){upd.aceito_em=new Date().toISOString().slice(0,10);}
   await sb.from('orcamentos').update(upd).eq('id',id);
-  o.status=status;if(upd.aceito_em)o.aceito_em=upd.aceito_em;
-  if(status==='Aceito'&&upd.aceito_em){await gerarCobOrc(o);}
-  renderOrc();toast('Status atualizado!');
+  // Recarrega do banco para não perder nenhum campo
+  const {data:atualizado}=await sb.from('orcamentos').select('*').eq('id',id).single();
+  if(atualizado){
+    const idx=orcamentos.findIndex(o=>o.id===id);
+    orcamentos[idx]=atualizado;
+    if(status==='Aceito'&&!jaAceito) await gerarCobOrc(atualizado);
+  }
+  renderOrc();renderFin();toast('Status atualizado!');
 }
 
 async function gerarCobOrc(o){
-  const cl=clientes.find(c=>c.id===o.cliente_id);
   if(o.tipo==='Avulso'){
-    const d=new Date(o.data_vencimento+'T00:00:00');
+    const dataRef=o.data_pagamento||o.data_vencimento||new Date().toISOString().slice(0,10);
+    const d=new Date(dataRef+'T00:00:00');
     const mes=d.getMonth()+1,ano=d.getFullYear();
     const jaExiste=cobrancas.find(c=>c.orc_id===o.id&&c.mes===mes&&c.ano===ano);
     if(!jaExiste){
@@ -1060,20 +1076,24 @@ async function gerarCobOrc(o){
       if(nova)cobrancas.push(nova);
     }
   } else {
-    // Recorrente: gera 12 meses a partir da data de início
-    const inicio=new Date(o.data_inicio+'T00:00:00');
+    const dataRef=o.data_inicio||new Date().toISOString().slice(0,10);
+    const inicio=new Date(dataRef+'T00:00:00');
     const rows=[];
     for(let i=0;i<12;i++){
       const d=new Date(inicio.getFullYear(),inicio.getMonth()+i,1);
       const mes=d.getMonth()+1,ano=d.getFullYear();
       const jaExiste=cobrancas.find(c=>c.orc_id===o.id&&c.mes===mes&&c.ano===ano);
-      if(!jaExiste)rows.push({escritorio_id:ESC_ID,cliente_id:o.cliente_id,user_id:me.id,orc_id:o.id,tipo:'Recorrente',mes,ano,valor:o.total,status:'Em Aberto',obs:''});
+      if(!jaExiste)rows.push({
+        escritorio_id:ESC_ID,cliente_id:o.cliente_id,user_id:me.id,
+        orc_id:o.id,tipo:'Recorrente',mes,ano,valor:o.total,status:'Em Aberto',obs:''
+      });
     }
     if(rows.length){
       const {data:novas}=await sb.from('cobranças').insert(rows).select();
       if(novas)cobrancas.push(...novas);
     }
   }
+  renderFin();
 }
 
 function askCancel(id){
@@ -1142,9 +1162,19 @@ function openEmailOrc(id){
 }
 function sendVia(url){window.open(url,'_blank');closeModal('m-email');}
 function buildEmailCorpo(o,cl){
+  const trat=cl?.tratamento||'';
+  const nomeCompleto=`${trat} ${cl?.nome||'cliente'}`.trim();
   const linhas=(o.itens||[]).filter(i=>i.desc).map(i=>`  • ${i.desc}: R$ ${parseFloat(i.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})}`).join('\n');
-  const venc=o.tipo==='Avulso'&&o.data_vencimento?`\nVencimento: ${fmtDate(o.data_vencimento)}`:`\nInício: ${fmtDate(o.data_inicio)} (recorrente, todo dia ${o.dia_cobranca})`;
-  return`Prezado(a) ${cl?.nome||'cliente'},\n\nSegue orçamento pelos serviços contábeis:\n\n${linhas}\n\nTOTAL: R$ ${parseFloat(o.total).toLocaleString('pt-BR',{minimumFractionDigits:2})}${venc}\n\nEm caso de dúvidas, estou à disposição.\n\nAtenciosamente,`;
+  let infoData='';
+  if(o.tipo==='Avulso'){
+    if(o.prazo_conclusao) infoData+=`\nPrazo de conclusão: ${fmtDate(o.prazo_conclusao)}`;
+    if(o.data_pagamento)  infoData+=`\nData de pagamento: ${fmtDate(o.data_pagamento)}`;
+  } else {
+    if(o.data_inicio)     infoData+=`\nInício do serviço: ${fmtDate(o.data_inicio)}`;
+    if(o.dia_pagamento)   infoData+=`\nPagamento: todo dia ${o.dia_pagamento} de cada mês`;
+    if(o.prazo_conclusao) infoData+=`\nPrazo de conclusão: ${fmtDate(o.prazo_conclusao)}`;
+  }
+  return`Prezad${trat==='Sra.'?'a':'o'} ${nomeCompleto},\n\nSegue orçamento pelos serviços contábeis:\n\n${linhas}\n\nTOTAL: R$ ${parseFloat(o.total).toLocaleString('pt-BR',{minimumFractionDigits:2})}${infoData}\n\nEm caso de dúvidas, estou à disposição.\n\nAtenciosamente,`;
 }
 
 function renderOrc(){
@@ -1154,18 +1184,20 @@ function renderOrc(){
   const el=document.getElementById('tbl-orc');
   if(!lista.length){el.innerHTML='<div class="empty"><div class="empty-icon">📄</div><div class="empty-text">Nenhum orçamento encontrado.</div></div>';return;}
   el.innerHTML=`<div class="tbl-wrap"><table>
-    <tr><th>Cliente</th><th>Tipo</th><th>Serviços</th><th>Total</th><th>Vencimento/Início</th><th>Prazo</th><th>Status</th><th>Ações</th></tr>
+    <tr><th>Cliente</th><th>Tipo</th><th>Serviços</th><th>Total</th><th>Pagamento</th><th>Prazo</th><th>Status</th><th>Ações</th></tr>
     ${lista.map(o=>{
       const cl=clientes.find(c=>c.id===o.cliente_id);
-      const data=o.tipo==='Avulso'?fmtDate(o.data_vencimento):fmtDate(o.data_inicio)+` (dia ${o.dia_cobranca})`;
+      const pagamento=o.tipo==='Avulso'
+        ? fmtDate(o.data_pagamento)
+        : (o.dia_pagamento?`Todo dia ${o.dia_pagamento}`:'—');
       const hoje=new Date();hoje.setHours(0,0,0,0);
       const prazoVencido=o.prazo_conclusao&&new Date(o.prazo_conclusao+'T00:00:00')<hoje&&o.status!=='Aceito';
       return`<tr>
-        <td><strong>${cl?esc(cl.nome):'—'}</strong></td>
+        <td><strong>${cl?(esc(cl.tratamento||'')+' '+esc(cl.nome)):' —'}</strong></td>
         <td><span class="badge ${o.tipo==='Recorrente'?'b-purple':'b-gray'}">${o.tipo||'Avulso'}</span></td>
-        <td style="font-size:12px;color:var(--text2);max-width:180px;overflow:hidden;text-overflow:ellipsis">${(o.itens||[]).map(i=>esc(i.desc)).join(', ')}</td>
+        <td style="font-size:12px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis">${(o.itens||[]).map(i=>esc(i.desc)).join(', ')}</td>
         <td style="font-weight:600;color:var(--accent-h)">R$ ${parseFloat(o.total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
-        <td style="font-size:12px">${data}</td>
+        <td style="font-size:12px">${pagamento}</td>
         <td style="font-size:12px${prazoVencido?';color:var(--red)':''}">${o.prazo_conclusao?(fmtDate(o.prazo_conclusao)+(prazoVencido?' ⚠':'')):'—'}</td>
         <td>
           <select onchange="changeOrcStatus('${o.id}',this.value)" style="font-size:12px;padding:4px 8px;width:auto">
