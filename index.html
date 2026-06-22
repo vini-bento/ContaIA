@@ -1048,16 +1048,26 @@ async function saveOrc(){
 
 async function changeOrcStatus(id,status){
   const o=orcamentos.find(x=>x.id===id);if(!o)return;
+  const eraAceito=o.status==='Aceito';
   const jaAceito=o.aceito_em;
   const upd={status};
   if(status==='Aceito'&&!jaAceito){upd.aceito_em=new Date().toISOString().slice(0,10);}
+  if(status!=='Aceito'&&eraAceito){upd.aceito_em=null;}
   await sb.from('orcamentos').update(upd).eq('id',id);
   // Recarrega do banco para não perder nenhum campo
   const {data:atualizado}=await sb.from('orcamentos').select('*').eq('id',id).single();
   if(atualizado){
     const idx=orcamentos.findIndex(o=>o.id===id);
     orcamentos[idx]=atualizado;
-    if(status==='Aceito'&&!jaAceito) await gerarCobOrc(atualizado);
+    if(status==='Aceito'&&!jaAceito){
+      // Virou Aceito pela primeira vez — gera cobranças
+      await gerarCobOrc(atualizado);
+    } else if(status!=='Aceito'&&eraAceito){
+      // Saiu de Aceito — remove cobranças em aberto
+      await sb.from('cobranças').delete().eq('orc_id',id).eq('status','Em Aberto');
+      cobrancas=cobrancas.filter(c=>!(c.orc_id===id&&c.status==='Em Aberto'));
+      toast('Cobranças em aberto removidas do Financeiro.');
+    }
   }
   renderOrc();renderFin();toast('Status atualizado!');
 }
