@@ -442,7 +442,6 @@ select option{background:var(--s2);}
           <div class="tab" onclick="switchOrcTab('rascunho')">Rascunho</div>
           <div class="tab" onclick="switchOrcTab('enviado')">Enviado</div>
           <div class="tab" onclick="switchOrcTab('aceito')">Aceito</div>
-          <div class="tab" onclick="switchOrcTab('cancelado')">Cancelado</div>
         </div>
         <div class="card"><div id="tbl-orc"><div class="empty"><div class="empty-icon">📄</div><div class="empty-text">Nenhum orçamento criado.</div></div></div></div>
       </div>
@@ -577,8 +576,9 @@ select option{background:var(--s2);}
           <button class="tipo-btn" id="tb-recorrente" onclick="setTipo('Recorrente')">Recorrente</button>
         </div>
       </div>
-      <div class="fg" id="fg-venc"><label>Data de Vencimento</label><input type="date" id="o-vencimento"></div>
+      <div class="fg" id="fg-venc"><label>Data de Vencimento do Pagamento</label><input type="date" id="o-vencimento"></div>
       <div class="fg hidden" id="fg-inicio"><label>Data de Início</label><input type="date" id="o-inicio"></div>
+      <div class="fg"><label>Prazo de Conclusão</label><input type="date" id="o-prazo"></div>
     </div>
     <hr class="divider">
     <div class="card-title" style="margin-bottom:10px">Serviços do Catálogo</div>
@@ -938,7 +938,7 @@ function switchOrcCatTab(t){
 }
 function switchOrcTab(t){
   orcTab=t;
-  document.querySelectorAll('#page-orcamentos .tab').forEach((el,i)=>el.classList.toggle('on',['todos','rascunho','enviado','aceito','cancelado'][i]===t));
+  document.querySelectorAll('#page-orcamentos .tab').forEach((el,i)=>el.classList.toggle('on',['todos','rascunho','enviado','aceito'][i]===t));
   renderOrc();
 }
 
@@ -953,11 +953,13 @@ function openOrc(id){
     setTipo(o.tipo||'Avulso');
     document.getElementById('o-vencimento').value=o.data_vencimento||'';
     document.getElementById('o-inicio').value=o.data_inicio||'';
+    document.getElementById('o-prazo').value=o.prazo_conclusao||'';
     orcItens=JSON.parse(JSON.stringify(o.itens||[]));
   } else {
     sel.value='';setTipo('Avulso');
     document.getElementById('o-vencimento').value='';
     document.getElementById('o-inicio').value='';
+    document.getElementById('o-prazo').value='';
     orcItens=[];
   }
   renderOrcItens();renderOrcCat();
@@ -1019,6 +1021,7 @@ async function saveOrc(){
     data_vencimento:orcTipo==='Avulso'?document.getElementById('o-vencimento').value:null,
     data_inicio:orcTipo==='Recorrente'?document.getElementById('o-inicio').value:null,
     dia_cobranca:orcTipo==='Recorrente'?new Date(document.getElementById('o-inicio').value+'T00:00:00').getDate():null,
+    prazo_conclusao:document.getElementById('o-prazo').value||null,
     status:'Rascunho',ativo:true,
     escritorio_id:ESC_ID,user_id:me.id
   };
@@ -1033,14 +1036,13 @@ async function saveOrc(){
   closeModal('m-orc');renderOrc();toast('Orçamento salvo!');
 }
 
-async function setOrcStatus(id,status){
+async function changeOrcStatus(id,status){
   const o=orcamentos.find(x=>x.id===id);if(!o)return;
   const upd={status};
-  if(status==='Aceito'){upd.aceito_em=new Date().toISOString().slice(0,10);}
+  if(status==='Aceito'&&!o.aceito_em){upd.aceito_em=new Date().toISOString().slice(0,10);}
   await sb.from('orcamentos').update(upd).eq('id',id);
   o.status=status;if(upd.aceito_em)o.aceito_em=upd.aceito_em;
-  // Quando aceito, gera cobranças
-  if(status==='Aceito'){await gerarCobOrc(o);}
+  if(status==='Aceito'&&upd.aceito_em){await gerarCobOrc(o);}
   renderOrc();toast('Status atualizado!');
 }
 
@@ -1100,20 +1102,21 @@ async function confirmCancel(){
   if(!cancelOrcId)return;
   const o=orcamentos.find(x=>x.id===cancelOrcId);
   const hoje=new Date();hoje.setHours(0,0,0,0);
-  await sb.from('orcamentos').update({status:'Cancelado',cancelado_em:hoje.toISOString().slice(0,10),ativo:false}).eq('id',cancelOrcId);
-  o.status='Cancelado';o.ativo=false;
   if(o.tipo==='Avulso'){
     // Remove cobranças em aberto
     await sb.from('cobranças').delete().eq('orc_id',cancelOrcId).eq('status','Em Aberto');
     cobrancas=cobrancas.filter(c=>!(c.orc_id===cancelOrcId&&c.status==='Em Aberto'));
   } else {
-    // Recorrente: mantém mês atual e anteriores, remove futuros em aberto
+    // Recorrente: remove cobranças futuras em aberto
     const mesAtual=hoje.getMonth()+1,anoAtual=hoje.getFullYear();
     const futuros=cobrancas.filter(c=>c.orc_id===cancelOrcId&&c.status==='Em Aberto'&&(c.ano>anoAtual||(c.ano===anoAtual&&c.mes>mesAtual)));
-    for(const f of futuros){await sb.from('cobranças').delete().eq('id',f.id);}
+    for(const f of futuros)await sb.from('cobranças').delete().eq('id',f.id);
     cobrancas=cobrancas.filter(c=>!futuros.find(f=>f.id===c.id));
   }
-  closeModal('m-cancel');renderOrc();renderFin();toast('Orçamento cancelado.');
+  // Remove orçamento da lista completamente
+  await sb.from('orcamentos').delete().eq('id',cancelOrcId);
+  orcamentos=orcamentos.filter(o=>o.id!==cancelOrcId);
+  closeModal('m-cancel');renderOrc();renderFin();toast('Orçamento cancelado e removido.');
   cancelOrcId=null;
 }
 
@@ -1145,28 +1148,36 @@ function buildEmailCorpo(o,cl){
 }
 
 function renderOrc(){
-  const lista=orcTab==='todos'?orcamentos:orcamentos.filter(o=>o.status?.toLowerCase()===orcTab);
+  const lista=orcTab==='todos'
+    ? orcamentos.filter(o=>o.status!=='Cancelado')
+    : orcamentos.filter(o=>o.status?.toLowerCase()===orcTab&&o.status!=='Cancelado');
   const el=document.getElementById('tbl-orc');
   if(!lista.length){el.innerHTML='<div class="empty"><div class="empty-icon">📄</div><div class="empty-text">Nenhum orçamento encontrado.</div></div>';return;}
-  const statusBadge=(s)=>s==='Aceito'?'b-green':s==='Cancelado'?'b-red':s==='Enviado'?'b-yellow':'b-gray';
   el.innerHTML=`<div class="tbl-wrap"><table>
-    <tr><th>Cliente</th><th>Tipo</th><th>Serviços</th><th>Total</th><th>Vencimento/Início</th><th>Status</th><th>Ações</th></tr>
+    <tr><th>Cliente</th><th>Tipo</th><th>Serviços</th><th>Total</th><th>Vencimento/Início</th><th>Prazo</th><th>Status</th><th>Ações</th></tr>
     ${lista.map(o=>{
       const cl=clientes.find(c=>c.id===o.cliente_id);
       const data=o.tipo==='Avulso'?fmtDate(o.data_vencimento):fmtDate(o.data_inicio)+` (dia ${o.dia_cobranca})`;
+      const hoje=new Date();hoje.setHours(0,0,0,0);
+      const prazoVencido=o.prazo_conclusao&&new Date(o.prazo_conclusao+'T00:00:00')<hoje&&o.status!=='Aceito';
       return`<tr>
         <td><strong>${cl?esc(cl.nome):'—'}</strong></td>
         <td><span class="badge ${o.tipo==='Recorrente'?'b-purple':'b-gray'}">${o.tipo||'Avulso'}</span></td>
         <td style="font-size:12px;color:var(--text2);max-width:180px;overflow:hidden;text-overflow:ellipsis">${(o.itens||[]).map(i=>esc(i.desc)).join(', ')}</td>
         <td style="font-weight:600;color:var(--accent-h)">R$ ${parseFloat(o.total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
         <td style="font-size:12px">${data}</td>
-        <td><span class="badge ${statusBadge(o.status)}">${o.status||'Rascunho'}</span></td>
+        <td style="font-size:12px${prazoVencido?';color:var(--red)':''}">${o.prazo_conclusao?(fmtDate(o.prazo_conclusao)+(prazoVencido?' ⚠':'')):'—'}</td>
+        <td>
+          <select onchange="changeOrcStatus('${o.id}',this.value)" style="font-size:12px;padding:4px 8px;width:auto">
+            <option value="Rascunho" ${o.status==='Rascunho'?'selected':''}>Rascunho</option>
+            <option value="Enviado" ${o.status==='Enviado'?'selected':''}>Enviado</option>
+            <option value="Aceito" ${o.status==='Aceito'?'selected':''}>Aceito</option>
+          </select>
+        </td>
         <td><div class="actions">
-          ${o.status==='Rascunho'?`<button class="btn btn-ghost btn-sm" onclick="setOrcStatus('${o.id}','Enviado')">Enviar</button>`:''}
-          ${o.status==='Enviado'?`<button class="btn btn-success btn-sm" onclick="setOrcStatus('${o.id}','Aceito')">Aceitar</button>`:''}
           <button class="btn btn-accent btn-sm" onclick="openEmailOrc('${o.id}')">✉</button>
           <button class="btn btn-ghost btn-sm" onclick="openOrc('${o.id}')">✎</button>
-          ${o.status!=='Cancelado'?`<button class="btn btn-danger btn-sm" onclick="askCancel('${o.id}')">✕</button>`:''}
+          <button class="btn btn-danger btn-sm" onclick="askCancel('${o.id}')">✕</button>
         </div></td>
       </tr>`;
     }).join('')}
