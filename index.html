@@ -626,10 +626,12 @@ select option{background:var(--s2);}
         <div class="tabs">
           <div class="tab on" onclick="switchCatTab('pj')">Pessoa Jurídica</div>
           <div class="tab" onclick="switchCatTab('pf')">Pessoa Física</div>
+          <div class="tab" onclick="switchCatTab('pacotes')">📦 Pacotes</div>
         </div>
         <div class="card">
           <div id="cat-pj"></div>
           <div id="cat-pf" class="hidden"></div>
+          <div id="cat-pacotes" class="hidden"></div>
         </div>
       </div>
 
@@ -798,11 +800,13 @@ select option{background:var(--s2);}
     <div class="form-grid">
       <div class="fg"><label>Cliente</label><select id="ob-cliente"></select></div>
       <div class="fg"><label>Obrigação</label>
-        <select id="ob-tipo"><option value="">Selecione...</option>
+        <select id="ob-tipo" onchange="toggleObTipo()"><option value="">Selecione...</option>
           <option>DAS MEI</option><option>DASN-SIMEI (Anual)</option><option>DAS Simples Nacional</option>
           <option>DEFIS</option><option>DCTF</option><option>IRPF — Declaração Anual</option>
-          <option>ECF</option><option>ECD</option><option>eSocial</option><option>GFIP/SEFIP</option><option>Outra</option>
+          <option>ECF</option><option>ECD</option><option>eSocial</option><option>GFIP/SEFIP</option>
+          <option value="__livre__">Outra (digitar livremente)</option>
         </select>
+        <input type="text" id="ob-tipo-livre" placeholder="Digite o nome da obrigação..." class="hidden" autocomplete="off" style="margin-top:6px">
       </div>
       <div class="fg"><label>Vencimento</label><input type="date" id="ob-venc"></div>
       <div class="fg"><label>Status</label><select id="ob-status"><option value="Pendente">Pendente</option><option value="Entregue">Entregue</option></select></div>
@@ -825,26 +829,40 @@ select option{background:var(--s2);}
       <div class="fg"><label>Valor Sugerido (R$)</label><input type="number" id="cat-val" inputmode="decimal" placeholder="0,00"></div>
     </div>
     <hr class="divider">
-    <div class="card-title" style="margin-bottom:12px">Obrigações Geradas ao Aceitar</div>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Quando um orçamento com este serviço for aceito, estas obrigações serão criadas automaticamente para o cliente.</p>
+    <div class="card-title" style="margin-bottom:12px">Obrigações do Pacote</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Defina as obrigações geradas automaticamente quando um orçamento com este serviço for aceito.</p>
+
+    <!-- Aplicar pacote existente -->
+    <div style="display:flex;gap:8px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+      <select id="cat-pacote-sel" style="flex:1;font-size:13px">
+        <option value="">Aplicar um pacote existente...</option>
+      </select>
+      <button class="btn btn-accent btn-sm" onclick="aplicarPacote()">Aplicar</button>
+    </div>
+
     <div id="cat-obrig-lista"></div>
     <div style="display:flex;gap:8px;margin-top:10px">
       <div style="flex:1;display:flex;flex-direction:column;gap:6px">
         <select id="cat-obrig-tipo" onchange="toggleCatObrigTipo()">
           <option value="">Selecione a obrigação...</option>
-          <option>DAS MEI</option><option>DASN-SIMEI (Anual)</option>
-          <option>DAS Simples Nacional</option><option>DEFIS</option>
-          <option>DCTF</option><option>IRPF — Declaração Anual</option>
-          <option>ECF</option><option>ECD</option>
-          <option>eSocial</option><option>GFIP/SEFIP</option>
-          <option value="__livre__">Outra (digitar livremente)</option>
         </select>
-        <input type="text" id="cat-obrig-tipo-livre" placeholder="Digite o nome da obrigação..." class="hidden" autocomplete="off">
+        <input type="text" id="cat-obrig-tipo-livre" placeholder="Nome da nova obrigação..." class="hidden" autocomplete="off">
       </div>
-      <input type="number" id="cat-obrig-dias" placeholder="Dias p/ vencer" style="width:150px" inputmode="numeric" min="1">
-      <button class="btn btn-success btn-sm" onclick="addCatObrig()">+</button>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <input type="number" id="cat-obrig-prazo" placeholder="Prazo" style="width:90px" inputmode="numeric" min="1">
+        <select id="cat-obrig-unidade" style="width:90px;font-size:12px;padding:6px 8px">
+          <option value="dias">Dias</option>
+          <option value="meses">Meses</option>
+        </select>
+      </div>
+      <button class="btn btn-success btn-sm" style="align-self:flex-start;margin-top:2px" onclick="addCatObrig()">+</button>
     </div>
-    <p style="font-size:11px;color:var(--text2);margin-top:6px">Informe em quantos dias a obrigação vence após o início do serviço. Ex: IRPF vence em 120 dias (30/04).</p>
+    <p style="font-size:12px;color:var(--text2);margin-top:8px">Ex: "Certidão Negativa Federal" · 30 dias após o início do serviço.</p>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:12px;color:var(--text2)">Salvar estas obrigações como pacote:</span>
+      <input type="text" id="cat-salvar-pacote-nome" placeholder="Nome do pacote..." style="flex:1;min-width:160px;font-size:13px;padding:6px 10px">
+      <button class="btn btn-ghost btn-sm" onclick="salvarComoPacote()">💾 Salvar Pacote</button>
+    </div>
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeModal('m-cat')">Cancelar</button>
       <button class="btn btn-primary" id="btn-save-cat" onclick="saveCat()">Salvar Serviço</button>
@@ -852,7 +870,40 @@ select option{background:var(--s2);}
   </div>
 </div>
 
-<!-- MODAL EMAIL -->
+<!-- MODAL PACOTE -->
+<div class="modal-overlay hidden" id="m-pacote">
+  <div class="modal">
+    <div class="modal-title" id="m-pacote-title">Novo Pacote de Obrigações</div>
+    <div class="fg full" style="margin-bottom:16px">
+      <label>Nome do Pacote *</label>
+      <input type="text" id="pac-nome" placeholder="Ex: Encerramento de Empresa" autocomplete="off">
+    </div>
+    <div class="card-title" style="margin-bottom:10px">Obrigações do Pacote</div>
+    <div id="pac-obrig-lista"></div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+        <select id="pac-obrig-tipo" onchange="togglePacObrigTipo()">
+          <option value="">Selecione a obrigação...</option>
+        </select>
+        <input type="text" id="pac-obrig-tipo-livre" placeholder="Nome da nova obrigação..." class="hidden" autocomplete="off">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <input type="number" id="pac-obrig-prazo" placeholder="Prazo" style="width:90px" inputmode="numeric" min="1">
+        <select id="pac-obrig-unidade" style="width:90px;font-size:12px;padding:6px 8px">
+          <option value="dias">Dias</option>
+          <option value="meses">Meses</option>
+        </select>
+      </div>
+      <button class="btn btn-success btn-sm" style="align-self:flex-start;margin-top:2px" onclick="addPacObrig()">+</button>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('m-pacote')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-pac" onclick="savePacote()">Salvar Pacote</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL E-MAIL -->
 <div class="modal-overlay hidden" id="m-email">
   <div class="modal" style="width:440px">
     <div class="modal-title">Enviar Orçamento</div>
@@ -888,8 +939,9 @@ const sb = supabase.createClient(SB_URL, SB_KEY);
 // ── STATE ──
 let me = null;
 let clientes=[], orcamentos=[], obrigacoes=[], catalogo=[], cobrancas=[];
+let tiposObrigacao=[], pacotes=[];
 let orcTab='todos', catTab='pj', orcCatTab='pj', finTab='pagas';
-let editCId=null, editObId=null, editCatId=null, editOrcId=null;
+let editCId=null, editObId=null, editCatId=null, editOrcId=null, editPacoteId=null;
 let orcItens=[], orcTipo='Avulso';
 let cancelOrcId=null;
 
@@ -958,18 +1010,22 @@ async function doLogout(){
 
 // ── LOAD ──
 async function loadAll(){
-  const [rc,ro,rob,rcat,rcob]=await Promise.all([
+  const [rc,ro,rob,rcat,rcob,rto,rpac]=await Promise.all([
     sb.from('clientes').select('*').eq('escritorio_id',ESC_ID).order('nome'),
     sb.from('orcamentos').select('*').eq('escritorio_id',ESC_ID).order('created_at',{ascending:false}),
     sb.from('obrigacoes').select('*').eq('escritorio_id',ESC_ID).order('vencimento'),
     sb.from('catalogo').select('*').eq('escritorio_id',ESC_ID).order('nome'),
     sb.from('cobranças').select('*').eq('escritorio_id',ESC_ID).order('ano').order('mes'),
+    sb.from('tipos_obrigacao').select('*').eq('escritorio_id',ESC_ID).order('nome'),
+    sb.from('pacotes_obrigacao').select('*').eq('escritorio_id',ESC_ID).order('nome'),
   ]);
   clientes=rc.data||[];
   orcamentos=ro.data||[];
   obrigacoes=rob.data||[];
   catalogo=rcat.data||[];
   cobrancas=rcob.data||[];
+  tiposObrigacao=rto.data||[];
+  pacotes=rpac.data||[];
   await checkRollover();
 }
 
@@ -1034,7 +1090,7 @@ function go(page){
   if(page==='clientes')acts.innerHTML='<button class="btn btn-primary" onclick="openCliente()">+ Novo Cliente</button>';
   if(page==='orcamentos')acts.innerHTML='<button class="btn btn-primary" onclick="openOrc()">+ Novo Orçamento</button>';
   if(page==='obrigacoes')acts.innerHTML='<button class="btn btn-primary" onclick="openObrig()">+ Nova Obrigação</button>';
-  if(page==='catalogo')acts.innerHTML='<button class="btn btn-primary" onclick="openCat()">+ Novo Serviço</button>';
+  if(page==='catalogo')acts.innerHTML='<button class="btn btn-ghost" onclick="openPacote()" style="margin-right:4px">📦 Novo Pacote</button><button class="btn btn-primary" onclick="openCat()">+ Novo Serviço</button>';
   if(page==='dashboard')renderDash();
   if(page==='clientes')renderClientes();
   if(page==='orcamentos')renderOrc();
@@ -1538,6 +1594,7 @@ async function confirmCancel(){
   cancelOrcId=null;
 }
 
+let _emailOpts=[];
 function openEmailOrc(id){
   const o=orcamentos.find(x=>x.id===id);
   const cl=clientes.find(c=>c.id===o.cliente_id);
@@ -1545,20 +1602,20 @@ function openEmailOrc(id){
   const assunto=encodeURIComponent(`Orçamento de Serviços Contábeis — ${cl?.nome||''}`);
   const corpo=buildEmailCorpo(o,cl);
   const ce=encodeURIComponent(corpo);
-  const opts=[
+  _emailOpts=[
     {icon:'📧',name:'Gmail',desc:'Abre no Gmail',url:`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(dest)}&su=${assunto}&body=${ce}`},
     {icon:'📮',name:'Outlook',desc:'Abre no Outlook Web',url:`https://outlook.live.com/mail/0/deeplink/compose?to=${encodeURIComponent(dest)}&subject=${assunto}&body=${ce}`},
     {icon:'📬',name:'Yahoo Mail',desc:'Abre no Yahoo',url:`https://compose.mail.yahoo.com/?to=${encodeURIComponent(dest)}&subject=${assunto}&body=${ce}`},
     {icon:'✉️',name:'App padrão',desc:'App de e-mail do dispositivo',url:`mailto:${dest}?subject=${assunto}&body=${ce}`},
   ];
-  document.getElementById('email-opts').innerHTML=opts.map(op=>`
-    <div class="email-opt" onclick="sendVia(${JSON.stringify(op.url)})">
+  document.getElementById('email-opts').innerHTML=_emailOpts.map((op,i)=>`
+    <div class="email-opt" onclick="sendVia(${i})">
       <div class="email-opt-icon">${op.icon}</div>
       <div><div class="email-opt-name">${op.name}</div><div class="email-opt-desc">${op.desc}</div></div>
     </div>`).join('');
   document.getElementById('m-email').classList.remove('hidden');
 }
-function sendVia(url){window.open(url,'_blank');closeModal('m-email');}
+function sendVia(i){window.open(_emailOpts[i].url,'_blank');closeModal('m-email');}
 function buildEmailCorpo(o,cl){
   const trat=cl?.tratamento||'';
   const nomeCompleto=`${trat} ${cl?.nome||'cliente'}`.trim();
@@ -1630,17 +1687,46 @@ async function autoObrig(c,ano){
   if(rows.length)await sb.from('obrigacoes').insert(rows);
 }
 
+function toggleObTipo(){
+  const sel=document.getElementById('ob-tipo');
+  const livre=document.getElementById('ob-tipo-livre');
+  const isLivre=sel.value==='__livre__';
+  livre.classList.toggle('hidden',!isLivre);
+  if(isLivre)livre.focus();
+}
+
 function openObrig(id){
   editObId=id||null;
   document.getElementById('m-obrig-title').textContent=id?'Editar Obrigação':'Nova Obrigação';
   const sel=document.getElementById('ob-cliente');
   sel.innerHTML='<option value="">Selecione...</option>'+clientes.map(c=>`<option value="${c.id}">${esc(c.nome)}</option>`).join('');
-  if(id){const o=obrigacoes.find(x=>x.id===id);sel.value=o.cliente_id;document.getElementById('ob-tipo').value=o.tipo;document.getElementById('ob-venc').value=o.vencimento;document.getElementById('ob-status').value=o.status;document.getElementById('ob-obs').value=o.obs||'';}
-  else{sel.value='';['ob-tipo','ob-venc','ob-obs'].forEach(f=>document.getElementById(f).value='');document.getElementById('ob-status').value='Pendente';}
+  populateTiposSelectOb();
+  const livre=document.getElementById('ob-tipo-livre');
+  if(id){
+    const o=obrigacoes.find(x=>x.id===id);
+    sel.value=o.cliente_id;
+    // Se o tipo não está na lista padrão, usa campo livre
+    const sel2=document.getElementById('ob-tipo');
+    const opcoes=['DAS MEI','DASN-SIMEI (Anual)','DAS Simples Nacional','DEFIS','DCTF','IRPF — Declaração Anual','ECF','ECD','eSocial','GFIP/SEFIP'];
+    if(opcoes.includes(o.tipo)){sel2.value=o.tipo;livre.classList.add('hidden');livre.value='';}
+    else{sel2.value='__livre__';livre.value=o.tipo;livre.classList.remove('hidden');}
+    document.getElementById('ob-venc').value=o.vencimento;
+    document.getElementById('ob-status').value=o.status;
+    document.getElementById('ob-obs').value=o.obs||'';
+  } else {
+    sel.value='';
+    document.getElementById('ob-tipo').value='';
+    livre.value='';livre.classList.add('hidden');
+    ['ob-venc','ob-obs'].forEach(f=>document.getElementById(f).value='');
+    document.getElementById('ob-status').value='Pendente';
+  }
   document.getElementById('m-obrig').classList.remove('hidden');
 }
 async function saveObrig(){
-  const cid=document.getElementById('ob-cliente').value,tipo=document.getElementById('ob-tipo').value,venc=document.getElementById('ob-venc').value;
+  const cid=document.getElementById('ob-cliente').value;
+  const sel=document.getElementById('ob-tipo');
+  const tipo=sel.value==='__livre__'?document.getElementById('ob-tipo-livre').value.trim():sel.value;
+  const venc=document.getElementById('ob-venc').value;
   if(!cid||!tipo||!venc){toast('Preencha todos os campos.');return;}
   const btn=document.getElementById('btn-save-ob');btn.innerHTML='<div class="spin"></div>';btn.disabled=true;
   const data={cliente_id:cid,tipo,vencimento:venc,status:document.getElementById('ob-status').value,obs:document.getElementById('ob-obs').value,escritorio_id:ESC_ID,user_id:me.id};
@@ -1788,12 +1874,220 @@ async function delCob(id){
 // ── CATÁLOGO ──
 let catTabAtual='pj';
 let catObrigItens=[];
+let pacObrigItens=[];
 
 function switchCatTab(t){
   catTabAtual=t;
-  document.querySelectorAll('#page-catalogo .tab').forEach((el,i)=>el.classList.toggle('on',['pj','pf'][i]===t));
+  document.querySelectorAll('#page-catalogo .tab').forEach((el,i)=>el.classList.toggle('on',['pj','pf','pacotes'][i]===t));
   document.getElementById('cat-pj').classList.toggle('hidden',t!=='pj');
   document.getElementById('cat-pf').classList.toggle('hidden',t!=='pf');
+  document.getElementById('cat-pacotes').classList.toggle('hidden',t!=='pacotes');
+  if(t==='pacotes')renderPacotes();
+}
+
+// ── TIPOS OBRIGAÇÃO ──
+const TIPOS_PADRAO=['DAS MEI','DASN-SIMEI (Anual)','DAS Simples Nacional','DEFIS','DCTF',
+  'IRPF — Declaração Anual','ECF','ECD','eSocial','GFIP/SEFIP'];
+
+function getTiposOpts(){
+  const custom=tiposObrigacao.map(t=>t.nome);
+  const todos=[...TIPOS_PADRAO,...custom];
+  return '<option value="">Selecione a obrigação...</option>'+
+    todos.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('')+
+    '<option value="__livre__">✚ Criar novo tipo...</option>';
+}
+
+function populateTiposSelect(selId){
+  const sel=document.getElementById(selId);
+  if(sel)sel.innerHTML=getTiposOpts();
+}
+
+function populateTiposSelectOb(){
+  const sel=document.getElementById('ob-tipo');
+  if(!sel)return;
+  const custom=tiposObrigacao.map(t=>t.nome);
+  const todos=[...TIPOS_PADRAO,...custom];
+  sel.innerHTML='<option value="">Selecione...</option>'+
+    todos.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('')+
+    '<option value="__livre__">✚ Outra (digitar livremente)</option>';
+}
+
+async function criarNovoTipo(nome){
+  if(!nome)return null;
+  const jaExiste=tiposObrigacao.find(t=>t.nome.toLowerCase()===nome.toLowerCase())||
+    TIPOS_PADRAO.find(t=>t.toLowerCase()===nome.toLowerCase());
+  if(jaExiste)return nome;
+  const {data:novo}=await sb.from('tipos_obrigacao').insert({
+    escritorio_id:ESC_ID,nome,user_id:me.id
+  }).select().single();
+  if(novo){tiposObrigacao.push(novo);tiposObrigacao.sort((a,b)=>a.nome.localeCompare(b.nome));toast('Novo tipo adicionado à lista!');}
+  // Repopula todos os selects de tipo
+  populateTiposSelect('cat-obrig-tipo');
+  populateTiposSelect('pac-obrig-tipo');
+  populateTiposSelectOb();
+  return nome;
+}
+
+function toggleCatObrigTipo(){
+  const sel=document.getElementById('cat-obrig-tipo');
+  const livre=document.getElementById('cat-obrig-tipo-livre');
+  livre.classList.toggle('hidden',sel.value!=='__livre__');
+  if(sel.value==='__livre__')livre.focus();
+}
+
+function togglePacObrigTipo(){
+  const sel=document.getElementById('pac-obrig-tipo');
+  const livre=document.getElementById('pac-obrig-tipo-livre');
+  livre.classList.toggle('hidden',sel.value!=='__livre__');
+  if(sel.value==='__livre__')livre.focus();
+}
+
+async function resolverTipo(selId,livreId){
+  const sel=document.getElementById(selId);
+  if(sel.value==='__livre__'){
+    const nome=document.getElementById(livreId).value.trim();
+    if(!nome){toast('Digite o nome da obrigação.');return null;}
+    return await criarNovoTipo(nome);
+  }
+  return sel.value||null;
+}
+
+async function addCatObrig(){
+  const tipo=await resolverTipo('cat-obrig-tipo','cat-obrig-tipo-livre');
+  if(!tipo)return;
+  const prazo=parseInt(document.getElementById('cat-obrig-prazo').value);
+  const unidade=document.getElementById('cat-obrig-unidade').value;
+  if(!prazo||prazo<1){toast('Informe o prazo.');return;}
+  const dias=unidade==='meses'?prazo*30:prazo;
+  catObrigItens.push({tipo,dias,prazoLabel:`${prazo} ${unidade}`});
+  document.getElementById('cat-obrig-tipo').value='';
+  document.getElementById('cat-obrig-tipo-livre').value='';
+  document.getElementById('cat-obrig-tipo-livre').classList.add('hidden');
+  document.getElementById('cat-obrig-prazo').value='';
+  document.getElementById('cat-obrig-unidade').value='dias';
+  renderCatObrigLista();
+}
+
+function removeCatObrig(i){catObrigItens.splice(i,1);renderCatObrigLista();}
+
+function renderCatObrigLista(){
+  const el=document.getElementById('cat-obrig-lista');
+  if(!catObrigItens.length){el.innerHTML='<div style="color:var(--text2);font-size:13px;padding:8px 0">Nenhuma obrigação vinculada ainda.</div>';return;}
+  el.innerHTML=catObrigItens.map((o,i)=>`
+    <div class="cat-obrig-item">
+      <div class="cat-obrig-nome">${esc(o.tipo)}</div>
+      <div class="cat-obrig-dias">vence em ${o.prazoLabel||o.dias+' dias'}</div>
+      <button class="btn btn-danger btn-sm" onclick="removeCatObrig(${i})">✕</button>
+    </div>`).join('');
+}
+
+function aplicarPacote(){
+  const id=document.getElementById('cat-pacote-sel').value;
+  if(!id){toast('Selecione um pacote.');return;}
+  const p=pacotes.find(x=>x.id===id);if(!p)return;
+  catObrigItens=[...catObrigItens,...(p.obrigacoes||[])];
+  renderCatObrigLista();
+  toast(`Pacote "${p.nome}" aplicado!`);
+}
+
+async function salvarComoPacote(){
+  const nome=document.getElementById('cat-salvar-pacote-nome').value.trim();
+  if(!nome){toast('Informe o nome do pacote.');return;}
+  if(!catObrigItens.length){toast('Adicione obrigações primeiro.');return;}
+  const jaExiste=pacotes.find(p=>p.nome.toLowerCase()===nome.toLowerCase());
+  if(jaExiste){
+    await sb.from('pacotes_obrigacao').update({obrigacoes:catObrigItens}).eq('id',jaExiste.id);
+    jaExiste.obrigacoes=[...catObrigItens];
+    toast(`Pacote "${nome}" atualizado!`);
+  } else {
+    const {data:novo}=await sb.from('pacotes_obrigacao').insert({
+      escritorio_id:ESC_ID,nome,obrigacoes:catObrigItens,user_id:me.id
+    }).select().single();
+    if(novo){pacotes.push(novo);pacotes.sort((a,b)=>a.nome.localeCompare(b.nome));}
+    toast(`Pacote "${nome}" salvo!`);
+  }
+  document.getElementById('cat-salvar-pacote-nome').value='';
+}
+
+// ── PACOTES ──
+async function addPacObrig(){
+  const tipo=await resolverTipo('pac-obrig-tipo','pac-obrig-tipo-livre');
+  if(!tipo)return;
+  const prazo=parseInt(document.getElementById('pac-obrig-prazo').value);
+  const unidade=document.getElementById('pac-obrig-unidade').value;
+  if(!prazo||prazo<1){toast('Informe o prazo.');return;}
+  const dias=unidade==='meses'?prazo*30:prazo;
+  pacObrigItens.push({tipo,dias,prazoLabel:`${prazo} ${unidade}`});
+  document.getElementById('pac-obrig-tipo').value='';
+  document.getElementById('pac-obrig-tipo-livre').value='';
+  document.getElementById('pac-obrig-tipo-livre').classList.add('hidden');
+  document.getElementById('pac-obrig-prazo').value='';
+  document.getElementById('pac-obrig-unidade').value='dias';
+  renderPacObrigLista();
+}
+
+function removePacObrig(i){pacObrigItens.splice(i,1);renderPacObrigLista();}
+
+function renderPacObrigLista(){
+  const el=document.getElementById('pac-obrig-lista');
+  if(!pacObrigItens.length){el.innerHTML='<div style="color:var(--text2);font-size:13px;padding:8px 0">Nenhuma obrigação adicionada ainda.</div>';return;}
+  el.innerHTML=pacObrigItens.map((o,i)=>`
+    <div class="cat-obrig-item">
+      <div class="cat-obrig-nome">${esc(o.tipo)}</div>
+      <div class="cat-obrig-dias">vence em ${o.prazoLabel||o.dias+' dias'}</div>
+      <button class="btn btn-danger btn-sm" onclick="removePacObrig(${i})">✕</button>
+    </div>`).join('');
+}
+
+function openPacote(id){
+  editPacoteId=id||null;
+  document.getElementById('m-pacote-title').textContent=id?'Editar Pacote':'Novo Pacote';
+  if(id){const p=pacotes.find(x=>x.id===id);document.getElementById('pac-nome').value=p.nome||'';pacObrigItens=JSON.parse(JSON.stringify(p.obrigacoes||[]));}
+  else{document.getElementById('pac-nome').value='';pacObrigItens=[];}
+  populateTiposSelect('pac-obrig-tipo');
+  document.getElementById('pac-obrig-tipo-livre').classList.add('hidden');
+  document.getElementById('pac-obrig-prazo').value='';
+  document.getElementById('pac-obrig-unidade').value='dias';
+  renderPacObrigLista();
+  document.getElementById('m-pacote').classList.remove('hidden');
+}
+
+async function savePacote(){
+  const nome=document.getElementById('pac-nome').value.trim();
+  if(!nome){toast('Informe o nome do pacote.');return;}
+  const btn=document.getElementById('btn-save-pac');btn.innerHTML='<div class="spin"></div>';btn.disabled=true;
+  const data={nome,obrigacoes:pacObrigItens,escritorio_id:ESC_ID,user_id:me.id};
+  if(editPacoteId){
+    await sb.from('pacotes_obrigacao').update(data).eq('id',editPacoteId);
+    const idx=pacotes.findIndex(p=>p.id===editPacoteId);pacotes[idx]={...pacotes[idx],...data};
+  } else {
+    const {data:novo}=await sb.from('pacotes_obrigacao').insert(data).select().single();
+    if(novo){pacotes.push(novo);pacotes.sort((a,b)=>a.nome.localeCompare(b.nome));}
+  }
+  btn.innerHTML='Salvar Pacote';btn.disabled=false;
+  closeModal('m-pacote');renderPacotes();toast('Pacote salvo!');
+}
+
+async function delPacote(id){
+  if(!confirm('Excluir este pacote?'))return;
+  await sb.from('pacotes_obrigacao').delete().eq('id',id);
+  pacotes=pacotes.filter(p=>p.id!==id);renderPacotes();toast('Pacote excluído.');
+}
+
+function renderPacotes(){
+  const el=document.getElementById('cat-pacotes');if(!el)return;
+  if(!pacotes.length){el.innerHTML='<div class="empty"><div class="empty-icon">📦</div><div class="empty-text">Nenhum pacote criado ainda.<br>Monte um conjunto de obrigações e salve como pacote para reutilizar.</div></div>';return;}
+  el.innerHTML=pacotes.map(p=>`
+    <div class="fin-row">
+      <div class="fin-left">
+        <div class="fin-name">${esc(p.nome)}</div>
+        <div class="fin-detail">${(p.obrigacoes||[]).length} obrigação${(p.obrigacoes||[]).length!==1?'s':''}</div>
+      </div>
+      <div class="fin-right">
+        <button class="btn btn-ghost btn-sm" onclick="openPacote('${p.id}')">✎ Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="delPacote('${p.id}')">✕</button>
+      </div>
+    </div>`).join('');
 }
 
 function openCat(id){
@@ -1807,58 +2101,20 @@ function openCat(id){
     catObrigItens=JSON.parse(JSON.stringify(s.obrigacoes_geradas||[]));
   } else {
     document.getElementById('cat-nome').value='';
-    document.getElementById('cat-cat').value=catTabAtual;
+    document.getElementById('cat-cat').value=catTabAtual==='pacotes'?'pj':catTabAtual;
     document.getElementById('cat-val').value='';
     catObrigItens=[];
   }
-  document.getElementById('cat-obrig-tipo').value='';
-  document.getElementById('cat-obrig-tipo-livre').value='';
+  populateTiposSelect('cat-obrig-tipo');
+  const pacSel=document.getElementById('cat-pacote-sel');
+  pacSel.innerHTML='<option value="">Aplicar um pacote existente...</option>'+
+    pacotes.map(p=>`<option value="${p.id}">${esc(p.nome)} (${(p.obrigacoes||[]).length} obrig.)</option>`).join('');
   document.getElementById('cat-obrig-tipo-livre').classList.add('hidden');
-  document.getElementById('cat-obrig-dias').value='';
+  document.getElementById('cat-obrig-prazo').value='';
+  document.getElementById('cat-obrig-unidade').value='dias';
+  document.getElementById('cat-salvar-pacote-nome').value='';
   renderCatObrigLista();
   document.getElementById('m-cat').classList.remove('hidden');
-}
-
-function toggleCatObrigTipo(){
-  const sel=document.getElementById('cat-obrig-tipo');
-  const livre=document.getElementById('cat-obrig-tipo-livre');
-  const isLivre=sel.value==='__livre__';
-  livre.classList.toggle('hidden',!isLivre);
-  if(isLivre)livre.focus();
-}
-
-function addCatObrig(){
-  const sel=document.getElementById('cat-obrig-tipo');
-  const livre=document.getElementById('cat-obrig-tipo-livre');
-  const dias=parseInt(document.getElementById('cat-obrig-dias').value);
-  let tipo=sel.value==='__livre__'?livre.value.trim():sel.value;
-  if(!tipo){toast('Selecione ou digite a obrigação.');return;}
-  if(!dias||dias<1){toast('Informe os dias para vencimento.');return;}
-  catObrigItens.push({tipo,dias});
-  sel.value='';
-  livre.value='';
-  livre.classList.add('hidden');
-  document.getElementById('cat-obrig-dias').value='';
-  renderCatObrigLista();
-}
-
-function removeCatObrig(i){
-  catObrigItens.splice(i,1);
-  renderCatObrigLista();
-}
-
-function renderCatObrigLista(){
-  const el=document.getElementById('cat-obrig-lista');
-  if(!catObrigItens.length){
-    el.innerHTML='<div style="color:var(--text2);font-size:13px;padding:8px 0">Nenhuma obrigação vinculada.</div>';
-    return;
-  }
-  el.innerHTML=catObrigItens.map((o,i)=>`
-    <div class="cat-obrig-item">
-      <div class="cat-obrig-nome">${esc(o.tipo)}</div>
-      <div class="cat-obrig-dias">vence em ${o.dias} dia${o.dias>1?'s':''}</div>
-      <button class="btn btn-danger btn-sm" onclick="removeCatObrig(${i})">✕</button>
-    </div>`).join('');
 }
 
 async function saveCat(){
